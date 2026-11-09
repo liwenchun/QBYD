@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>秦巴药都 · 中药材全产业链数据平台</title>
+<style>
+  :root{
+    --bg:#f4f6f4;
+    --panel:#ffffff;
+    --line:#e1e7e2;
+    --ink:#1d2b23;
+    --muted:#6d7d73;
+    --green-800:#17553a;
+    --green-700:#1f6b46;
+    --green-600:#2b7d54;
+    --green-100:#e7f2ea;
+    --amber:#b45309;
+    --red:#b91c1c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+  }
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  /* ================= 顶栏 ================= */
+  .topbar{
+    height:62px;
+    background:linear-gradient(90deg,var(--green-800),var(--green-600));
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:0 18px;
+    position:sticky;
+    top:0;
+    z-index:30;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;min-width:0;}
+  .brand .logo{
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:2px;
+    white-space:nowrap;
+  }
+  .brand .sub{
+    font-size:12px;
+    opacity:.82;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .userbox{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12.5px;
+    flex-wrap:nowrap;
+  }
+  .chip{
+    background:rgba(255,255,255,.16);
+    border-radius:14px;
+    padding:4px 10px;
+    white-space:nowrap;
+  }
+  .chip b{font-weight:600;}
+  .topbar .logout{
+    background:rgba(255,255,255,.94);
+    color:var(--green-800);
+    text-decoration:none;
+    border-radius:6px;
+    padding:6px 12px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .nav-toggle{
+    display:none;
+    background:rgba(255,255,255,.16);
+    color:#fff;
+    border:0;
+    border-radius:6px;
+    padding:7px 11px;
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  /* ================= 布局 ================= */
+  .layout{
+    display:flex;
+    min-height:calc(100vh - 62px);
+    align-items:stretch;
+  }
+  .sidebar{
+    width:212px;
+    flex:0 0 212px;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:14px 10px 26px;
+    position:sticky;
+    top:62px;
+    align-self:flex-start;
+    max-height:calc(100vh - 62px);
+    overflow:auto;
+    z-index:20;
+    transition:width .22s ease, flex-basis .22s ease, padding .22s ease;
+  }
+  .nav-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    padding:2px 2px 4px;
+  }
+  .nav-title{
+    font-size:11.5px;
+    color:var(--muted);
+    letter-spacing:1px;
+    padding:4px 8px 4px;
+    white-space:nowrap;
+  }
+  .nav-collapse{
+    width:26px;height:26px;flex:0 0 26px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--line);background:#fff;border-radius:7px;
+    color:var(--muted);cursor:pointer;padding:0;
+  }
+  .nav-collapse:hover{
+    background:var(--green-100);color:var(--green-800);border-color:#cfe4d6;
+  }
+  .nav-collapse:focus-visible{outline:2px solid var(--green-600);outline-offset:2px;}
+  .nav-collapse svg{width:14px;height:14px;transition:transform .22s ease;}
+
+  /* ===== 桌面端菜单收缩（窄条模式） ===== */
+  @media (min-width:901px){
+    html.nav-collapsed .sidebar{
+      width:62px;flex:0 0 62px;
+      padding:14px 8px 26px;
+      overflow:visible;
+    }
+    html.nav-collapsed .nav-title{display:none;}
+    html.nav-collapsed .nav-head{justify-content:center;padding:2px 0 6px;}
+    html.nav-collapsed .nav-collapse svg{transform:rotate(180deg);}
+    html.nav-collapsed .nav-item{
+      justify-content:center;
+      padding:11px 0;
+      gap:0;
+    }
+    html.nav-collapsed .nav-item .nav-text,
+    html.nav-collapsed .nav-item .tag{display:none;}
+    html.nav-collapsed .nav-sep{margin:10px 6px;}
+    /* 收起后在右侧浮现表名 */
+    html.nav-collapsed .nav-item{position:relative;}
+    html.nav-collapsed .nav-item:hover::after{
+      content:attr(data-name);
+      position:absolute;
+      left:calc(100% + 12px);
+      top:50%;
+      transform:translateY(-50%);
+      background:rgba(23,85,58,.96);
+      color:#fff;
+      font-size:12.5px;
+      font-weight:400;
+      line-height:1.2;
+      letter-spacing:0;
+      padding:7px 11px;
+      border-radius:8px;
+      white-space:nowrap;
+      pointer-events:none;
+      box-shadow:0 8px 20px rgba(0,0,0,.18);
+      z-index:70;
+    }
+  }
+  /* 窗口高度较矮时，收起态优先保证菜单可滚动，放弃浮层表名 */
+  @media (min-width:901px) and (max-height:620px){
+    html.nav-collapsed .sidebar{overflow-y:auto;overflow-x:hidden;}
+    html.nav-collapsed .nav-item:hover::after{display:none;}
+  }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    color:#33453b;
+    font-size:14px;
+    margin-bottom:2px;
+    border:1px solid transparent;
+  }
+  .nav-item:hover{background:var(--green-100);}
+  .nav-item.active{
+    background:var(--green-100);
+    border-color:#cfe4d6;
+    color:var(--green-800);
+    font-weight:600;
+  }
+  .nav-item .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--green-600);
+    flex:0 0 6px;
+    opacity:.55;
+  }
+  .nav-item.active .dot{opacity:1;}
+  .nav-item .tag{
+    margin-left:auto;
+    font-size:10.5px;
+    color:var(--muted);
+    background:#eef2ee;
+    border-radius:9px;
+    padding:1px 6px;
+  }
+  .nav-item.active .tag{background:#d7ecdd;color:var(--green-800);}
+  .nav-sep{height:1px;background:var(--line);margin:10px 8px;}
+
+  .content{
+    flex:1;
+    min-width:0;
+    padding:18px 20px 34px;
+  }
+
+  /* ================= 首页 ================= */
+  .hero{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    background:#dfe9e1;
+    box-shadow:0 10px 26px rgba(31,107,70,.10);
+  }
+  .hero img{
+    display:block;
+    width:100%;
+    height:clamp(200px,38vh,400px);
+    object-fit:cover;
+    object-position:center;
+  }
+  .hero .veil{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg,rgba(12,44,30,.78) 0%,rgba(12,44,30,.45) 45%,rgba(12,44,30,.06) 78%);
+  }
+  .hero .hero-text{
+    position:absolute;
+    left:34px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#fff;
+    max-width:min(620px,68%);
+    text-shadow:0 1px 8px rgba(0,0,0,.35);
+  }
+  .hero .hero-text .hello{font-size:13px;opacity:.85;letter-spacing:1px;margin-bottom:8px;}
+  .hero h1{
+    margin:0 0 10px;
+    font-size:clamp(20px,3vw,30px);
+    line-height:1.35;
+    font-weight:700;
+  }
+  .hero .desc{
+    font-size:13.5px;
+    line-height:1.8;
+    opacity:.92;
+    margin:0 0 14px;
+  }
+  .hero .perm-line{
+    display:inline-block;
+    font-size:12.5px;
+    background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.28);
+    padding:5px 12px;
+    border-radius:16px;
+  }
+  .home-note{
+    margin:14px 0 0;
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.9;
+  }
+  .card-grid{
+    margin-top:16px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:12px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    cursor:pointer;
+    transition:border-color .16s,box-shadow .16s,transform .16s;
+  }
+  .card:hover{
+    border-color:#bcd8c6;
+    box-shadow:0 6px 18px rgba(31,107,70,.10);
+    transform:translateY(-1px);
+  }
+  .card .c-name{font-size:15px;font-weight:600;color:#20362a;}
+  .card .c-meta{margin-top:8px;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;}
+  .card .c-mode{
+    font-size:11px;
+    border-radius:8px;
+    padding:1px 7px;
+    background:#eef2ee;
+    color:#4a5b51;
+    white-space:nowrap;
+  }
+  .card .c-mode.rw{background:#eaf2fd;color:#1d4ed8;}
+  .card .c-mode.rwd{background:#e8f3ec;color:var(--green-707,#1f6b46);}
+
+  /* ================= 数据视图 ================= */
+  .view-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .view-head h2{
+    margin:0;
+    font-size:18px;
+    font-weight:700;
+    color:#20362a;
+  }
+  .badge{
+    font-size:11.5px;
+    border-radius:10px;
+    padding:3px 9px;
+    background:var(--green-100);
+    color:var(--green-800);
+    border:1px solid #cfe4d6;
+    white-space:nowrap;
+  }
+  .view-tools{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .view-tools input[type="text"]{
+    width:210px;
+    padding:8px 11px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    outline:none;
+    background:#fff;
+  }
+  .view-tools input[type="text"]:focus{border-color:var(--green-600);}
+  .view-tools select{
+    padding:8px 8px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13px;
+    background:#fff;
+    outline:none;
+  }
+  .btn{
+    padding:8px 13px;
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:7px;
+    font-size:13.5px;
+    cursor:pointer;
+    color:#2c3e33;
+    white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--green-600);color:var(--green-700);}
+  .btn.primary{background:var(--green-700);border-color:var(--green-700);color:#fff;}
+  .btn.primary:hover{background:var(--green-600);color:#fff;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn:disabled:hover{border-color:var(--line);color:#2c3e33;}
+  .btn[hidden]{display:none !important;}
+  .btn.warn{border-color:#e0b4b4;background:#fff4f4;color:#a3352f;}
+  .btn.warn:hover{border-color:#c98b8b;color:#8d2b26;}
+
+  .table-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:auto;
+    max-height:calc(100vh - 300px);
+    min-height:180px;
+  }
+  table.grid{
+    border-collapse:separate;
+    border-spacing:0;
+    width:100%;
+    font-size:13.5px;
+  }
+  .grid th,.grid td{
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+    border-right:1px solid #edf1ee;
+    text-align:left;
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+  .grid thead th{
+    background:#eef4f0;
+    color:#173d2b;
+    font-weight:600;
+    position:sticky;
+    z-index:3;
+    text-align:center;
+  }
+  .grid thead th.sub{background:#e6efe9;font-weight:500;font-size:13px;}
+  .grid tbody td{background:#fff;}
+  .grid tbody tr:hover td{background:#f4faf6;}
+  .grid td.wrap{
+    white-space:pre-wrap;
+    min-width:200px;
+    max-width:360px;
+    line-height:1.55;
+    font-size:12.8px;
+  }
+  .grid td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .grid td.editable{cursor:text;}
+  .grid td.editable:hover{box-shadow:inset 0 0 0 1px #bcd8c6;}
+  .grid td.editing{padding:3px 4px;background:#fffdf3;}
+  .cell-input,.cell-select{
+    width:100%;
+    min-width:110px;
+    padding:5px 7px;
+    border:1px solid var(--green-600);
+    border-radius:5px;
+    font-size:13px;
+    font-family:inherit;
+    outline:none;
+    background:#fff;
+  }
+  .grid td.op{width:1%;white-space:nowrap;text-align:center;}
+  /* 删除列的「操作」表头：跨整段表头行，与其它表头同底色，冻结时置顶 */
+  .grid thead th.op-head{
+    width:1%;
+    white-space:nowrap;
+    text-align:center;
+    background:#eef4f0;
+    vertical-align:middle;
+    top:0 !important;
+    z-index:4;
+  }
+  .mini{
+    border:1px solid #e3c9c9;
+    background:#fff5f5;
+    color:var(--red);
+    border-radius:5px;
+    padding:3px 9px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .mini:hover{background:#ffe9e9;}
+  .masked{color:#8b9a91;letter-spacing:1px;}
+  /* 溯源明细「见溯源」超链接 */
+  .trace-link{
+    color:var(--green-700,#1e6b45);
+    text-decoration:underline;
+    text-underline-offset:2px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .trace-link:hover{color:#0f4d31;}
+  .trace-link.checking{opacity:.55;cursor:progress;}
+
+  .pager{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:12px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .pager .btn{padding:6px 11px;font-size:13px;}
+  .pager .page-info{margin-left:auto;}
+  .status{margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.8;}
+  .status.error{color:var(--red);}
+  .empty{
+    padding:46px 22px;
+    text-align:center;
+    color:var(--muted);
+    line-height:2;
+  }
+  .empty strong{color:#2c3e33;display:block;margin-bottom:6px;font-size:15px;}
+  .empty code{background:#eef2ee;padding:1px 6px;border-radius:3px;font-size:12px;}
+
+  /* ================= 提示 ================= */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:34px;
+    transform:translate(-50%,20px);
+    background:#22352a;
+    color:#fff;
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13.5px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .22s,transform .22s;
+    max-width:86vw;
+    text-align:center;
+    z-index:60;
+  }
+  .toast.show{opacity:.96;transform:translate(-50%,0);}
+  .toast.bad{background:#8b1e1e;}
+
+  /* ================= 响应式 ================= */
+  @media (max-width:900px){
+    .topbar{height:auto;flex-wrap:wrap;padding:10px 12px;gap:8px;}
+    .brand .sub{display:none;}
+    .nav-toggle{display:inline-block;order:3;}
+    .userbox{margin-left:auto;flex-wrap:wrap;gap:6px;font-size:12px;order:4;width:100%;}
+    .chip{padding:3px 8px;}
+    .layout{min-height:auto;position:relative;}
+    .sidebar{
+      position:fixed;
+      left:0;top:0;bottom:0;
+      width:230px;
+      max-height:100vh;
+      z-index:50;
+      transform:translateX(-102%);
+      transition:transform .22s;
+      box-shadow:12px 0 30px rgba(0,0,0,.16);
+    }
+    .sidebar.open{transform:translateX(0);}
+    .content{padding:12px;}
+    .hero img{height:clamp(168px,30vh,250px);}
+    .hero .hero-text{left:16px;right:16px;max-width:none;}
+    .hero .hero-text .hello{font-size:11.5px;margin-bottom:6px;}
+    .hero h1{margin-bottom:8px;}
+    .hero .desc{display:none;}
+    .view-tools{margin-left:0;width:100%;}
+    .view-tools input[type="text"]{flex:1;min-width:120px;width:auto;}
+    .table-wrap{max-height:calc(100vh - 340px);}
+    .pager .page-info{margin-left:0;}
+  }
+  /* ===== file:// 本地文件模式提示条 ===== */
+  .notice-mode{
+    background:#fff7e6;border:1px solid #f2d69a;color:#8a5a00;
+    border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.65;
+  }
+  .notice-mode .row{display:flex;gap:9px;align-items:flex-start;}
+  .notice-mode .ico{
+    flex:none;background:#f0a52b;color:#fff;border-radius:6px;
+    padding:2px 8px;font-size:12px;font-weight:600;white-space:nowrap;margin-top:1px;
+  }
+  .notice-mode .msg{flex:1;min-width:0;word-break:break-word;}
+  .notice-mode .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:9px;flex-wrap:wrap;}
+  .notice-mode code{background:#fff2d4;border-radius:4px;padding:0 4px;color:#8a5a00;}
+  @media (max-width:520px){
+    .brand .logo{font-size:17px;letter-spacing:1px;}
+    .hero h1{font-size:19px;}
+    .hero .hero-text .perm-line{font-size:11.5px;}
+    .notice-mode .msg{font-size:12px;}
+  }
+</style>
+<script>
+  /* 首帧恢复菜单收缩状态，避免刷新时先展开再收起 */
+  try { if (localStorage.getItem('qbd.navCollapsed') === '1') document.documentElement.className += ' nav-collapsed'; } catch (e) {}
+</script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">秦巴药都</span>
+    <span class="sub">中药材全产业链数据平台</span>
+  </div>
+  <button class="nav-toggle" id="navToggle">☰ 菜单</button>
+  <div class="userbox">
+    <span class="chip">用户名：<b id="userName">—</b></span>
+    <span class="chip">角色：<b id="roleName">—</b></span>
+    <span class="chip">登录时间：<b id="loginTime">—</b></span>
+    <a class="logout" id="btnLogout" href="./login.html">退出</a>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="nav-head">
+      <div class="nav-title">功能菜单</div>
+      <button class="nav-collapse" id="navCollapse" type="button" title="收起菜单" aria-label="收起菜单" aria-expanded="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 4 7 12 15 20"></polyline>
+        </svg>
+      </button>
+    </div>
+    <nav id="menu"></nav>
+  </aside>
+
+  <main class="content">
+    <!-- file:// 本地文件模式提示条 -->
+    <div class="notice-mode" id="modeNotice" hidden>
+      <div class="row">
+        <span class="ico">本地文件模式</span>
+        <span class="msg">当前以 <code>file://</code> 方式打开，浏览器禁止读取 <code>data/homeData.xlsx</code>，页面使用的是随附数据快照 <code>data/homeData.js</code>（快照不跟随 Excel 改动）。要看最新数据，请双击 output 目录的 <code>start-login.bat</code> 用本地服务打开。</span>
+      </div>
+      <div class="acts">
+        <button class="btn" id="btnPickXlsx" type="button">手动选择 homeData.xlsx</button>
+        <button class="btn" id="btnHideNotice" type="button">收起提示</button>
+      </div>
+      <input type="file" id="fileXlsx" accept=".xlsx,.xls" hidden>
+    </div>
+
+    <!-- 首页：品牌 + 图片欢迎页 -->
+    <section id="viewHome">
+      <div class="hero">
+        <img id="heroImg" src="../images/生产加工图1.jpg" alt="秦巴药都中药材生产加工">
+        <div class="veil"></div>
+        <div class="hero-text">
+          <div class="hello">秦巴道地中药材 · 种植到销售全程记录</div>
+          <h1>欢迎回来，<span id="welcomeName">—</span></h1>
+          <p class="desc">
+            本平台按种植、采收、入库、生产、出库、销售六个环节记录生产数据，<br>
+            并按账号权限控制可见范围与增删改查操作。
+          </p>
+          <span class="perm-line" id="permLine">当前权限：—</span>
+        </div>
+      </div>
+      <p class="home-note">
+        首页仅展示品牌与数据概览；点击左侧菜单或下方卡片才进入对应数据表。
+      </p>
+      <div class="card-grid" id="cardGrid"></div>
+    </section>
+
+    <!-- 数据表视图 -->
+    <section id="viewData" hidden>
+      <div class="view-head">
+        <h2 id="sheetTitle">—</h2>
+        <span class="badge" id="modeBadge">—</span>
+        <div class="view-tools">
+          <input type="text" id="search" placeholder="搜索当前表…" autocomplete="off">
+          <select id="pageSize" title="每页显示条数"></select>
+          <button class="btn" id="btnAdd">新增行</button>
+          <button class="btn" id="btnRevert">撤销编辑</button>
+          <button class="btn warn" id="btnRetry" type="button" hidden>重试保存</button>
+          <button class="btn" id="btnRestore" type="button" title="用最近一次自动备份把表格文件恢复原样">还原上一版</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty">正在加载数据…</div>
+      </div>
+      <div class="pager" id="pager"></div>
+      <div class="status" id="status"></div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./js/xlsx.full.min.js"></script>
+<script src="../data/usersData.js"></script>
+<script src="../data/homeData.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ==================== 配置 ==================== */
+  var CONFIG = {
+    homeData: '../data/homeData.xlsx',
+    usersData: '../data/usersData.xlsx',
+    loginPage: './login.html',
+    indexPage: './index.html',
+    storageKey: 'qbd.auth',
+    // 自动保存接口：本地服务（server.ps1）提供的写盘端点，用于把修改直接覆盖回原 xlsx
+    saveEndpoint: '/__save',
+    // 精确改写接口：只提交数据区，由本地服务调用 Excel 原地改单元格，原格式（字体/边框/合并/列宽行高）全保留
+    patchEndpoint: '/__patch',
+    // 还原接口：用 data\backup 里最近一次自动备份覆盖回表格（格式出问题时的"后悔药"）
+    restoreEndpoint: '/__restore',
+    // 兜底引擎：本机没装 Excel 或被占用时，用浏览器端 ExcelJS 改写
+    excelJsPath: './js/exceljs.min.js',
+    // 无操作超时：登录后若在 home.html 连续 5 分钟没有鼠标/键盘操作，自动返回登录页（毫秒）
+    idleMs: 5 * 60 * 1000,
+    pageSizes: [10, 20, 50],
+    defaultPageSize: 10,
+    userSheetLabel: '用户明细',   // 菜单/权限表里代表 usersData.xlsx「用户」表的名称
+    // 溯源明细表：把「见详细」列的「见溯源」变成跳转链接
+    traceSheetLabel: '溯源明细',
+    traceDir: './syHtml/',        // 相对 home.html 的溯源页面目录
+    traceByCodeDir: true,         // true = 按溯源码分子目录：./syHtml/溯源码/溯源码_名称_加工批次.html
+    traceFileSep: '_',            // 文件名各段之间的连接符
+    traceLinkCol: '见详细',
+    traceLinkText: '见溯源',
+    traceFileCols: ['溯源码', '名称', '加工批次']   // 文件名顺序：溯源码_名称_加工批次.html
+  };
+
+  var ROLE_G = '一般用户';
+  var ROLE_M = '管理用户';
+  var ROLE_S = '超级管理用户';
+  var MODE_TEXT = { 'r': '只读（查询）', 'rw': '可增可改', 'rwd': '可增可删可改' };
+
+  /* ==================== 全局状态 ==================== */
+  var AUTH = { user: '', ts: 0 };
+  var state = {
+    role: '',
+    realName: '',
+    homeWb: null,
+    usersWb: null,
+    users: [],            // 用户表记录（数组的数组）
+    userHeaders: [],
+    userSheetName: '用户',
+    permTables: [],       // [{name, cols:{}, deletable}]
+    perm: {},             // 表名 -> {visible, mode}
+    cache: {},            // 表名 -> 解析结果
+    current: '',          // 当前表名
+    page: 1,
+    pageSize: CONFIG.defaultPageSize,
+    keyword: '',
+    idleTimer: null,
+    lastActive: 0,        // 最近一次鼠标/键盘操作时间戳（无操作超时判定依据）
+    // 已读取的 xlsx 真实路径（仅内部记录，不在页面显示）：{ home: '/data/homeData.xlsx', users: '/data/usersData.xlsx' }
+    xlsxPath: { home: '', users: '' },
+    saving: false,
+    warnedNoWrite: false,
+    savedAt: {},          // 表名 -> 最近一次成功写盘时间
+    editSeq: {},          // 表名 -> 编辑序号（用于判断写盘期间是否又有新修改）
+    saveErr: {},          // 表名 -> 最近一次写盘失败原因
+    retryCount: {},       // 表名 -> 自动重试次数
+    retryTimer: {},       // 表名 -> 自动重试定时器
+    snapErr: '',          // 快照（homeData.js / usersData.js）写回失败原因
+    leaving: false,       // 正在主动跳转（退出登录 / 无操作超时），此时不拦 beforeunload
+    expired: false,
+    fileMode: false,      // true = 以 file:// 双击打开，数据来自 data/homeData.js 快照
+    dataSource: ''        // 'http' | 'snapshot' | 'local-file'
+  };
+
+  /* ==================== 小工具 ==================== */
+  var $ = function (id) { return document.getElementById(id); };
+  var pad2 = function (n) { return n < 10 ? '0' + n : '' + n; };
+
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function formatTs(ts) {
+    var d = new Date(ts);
+    if (!ts || isNaN(d.getTime())) return '未知';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+      pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  function nowText() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+      pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  // 快照里的单元格文本：日期统一成 yyyy-MM-dd，其余保持原样
+  function cellText(v) {
+    if (v === null || v === undefined) return '';
+    if (v instanceof Date) return v.getFullYear() + '-' + pad2(v.getMonth() + 1) + '-' + pad2(v.getDate());
+    return v;
+  }
+  var toastTimer = null;
+  function toast(msg, bad) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (bad ? ' bad' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = 'toast' + (bad ? ' bad' : ''); }, 2600);
+  }
+  function isBlank(v) { return v === '' || v === null || v === undefined; }
+  function isBlankRow(r) {
+    if (!r) return true;
+    for (var i = 0; i < r.length; i++) { if (!isBlank(r[i]) && String(r[i]).trim() !== '') return false; }
+    return true;
+  }
+
+  /* ==================== 会话：读取 / 校验 / 超时 ==================== */
+  function readAuth() {
+    var q = new URLSearchParams(location.search);
+    var user = (q.get('user') || '').trim();
+    var ts = parseInt(q.get('ts') || '', 10);
+    if (!(ts > 0)) ts = 0;
+    if (!user || !ts) {
+      try {
+        var a = JSON.parse(sessionStorage.getItem(CONFIG.storageKey) || 'null');
+        if (a) {
+          if (!user && a.username) user = String(a.username).trim();
+          if (!ts && a.loginAt) ts = parseInt(a.loginAt, 10) || 0;
+        }
+      } catch (e) { /* 忽略 */ }
+    }
+    return { user: user, ts: ts };
+  }
+
+  function clearSession() {
+    try {
+      sessionStorage.removeItem(CONFIG.storageKey);
+      sessionStorage.removeItem('qbd.username');
+      sessionStorage.removeItem('qbd.loginAt');
+    } catch (e) { /* 忽略 */ }
+  }
+
+  function goLogin(reason) {
+    if (state.expired) return;
+    state.expired = true;
+    state.leaving = true;
+    flushSaves();          // 超时前尽量把未保存的改动丢出去
+    clearSession();
+    var target = CONFIG.loginPage + (reason === 'expired' ? '?expired=1' : '?reason=auth');
+    location.replace(target);
+  }
+
+  /* 无操作自动返回登录页：记录登录时间 + 监听鼠标/键盘，5 分钟内无操作即退回 login.html */
+  var IDLE_EVENTS = ['mousemove', 'mousedown', 'mouseup', 'wheel', 'click',
+    'keydown', 'keyup', 'input', 'touchstart', 'touchmove', 'scroll'];
+  var idleHandlersBound = false;
+
+  function bindIdleActivity() {
+    if (idleHandlersBound) return;
+    idleHandlersBound = true;
+    function touch() {
+      var now = Date.now();
+      // 1 秒节流：mousemove 等高频事件不逐次写入，避免无谓开销
+      if (now - state.lastActive >= 1000) state.lastActive = now;
+    }
+    for (var i = 0; i < IDLE_EVENTS.length; i++) {
+      // capture 保证 scroll 等不冒泡的事件也能被捕获
+      window.addEventListener(IDLE_EVENTS[i], touch, { capture: true, passive: true });
+    }
+  }
+
+  function startIdleWatch() {
+    state.lastActive = Date.now();   // 进入页面即视为一次有效操作，从此刻起算 5 分钟
+    bindIdleActivity();
+
+    function checkIdle() {
+      if (state.expired) return;
+      var idle = Date.now() - state.lastActive;
+      if (idle >= CONFIG.idleMs) {
+        clearInterval(state.idleTimer);
+        goLogin('expired');
+      }
+    }
+    // 从其他标签页/最小化切回时立即校验，避免后台计时器被浏览器节流导致延迟退出
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) checkIdle();
+    });
+    checkIdle();
+    state.idleTimer = setInterval(checkIdle, 1000);
+  }
+
+  /* ==================== 数据读取 ==================== */
+  function fetchArrayBuffer(url) {
+    var resolved = new URL(url, document.baseURI).href;
+    return fetch(resolved, { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.arrayBuffer();
+    });
+  }
+
+  /* 记录 xlsx 的真实读取路径（内部使用，不渲染到页面任何位置） */
+  function rememberXlsxPath(kind, url) {
+    var p = '';
+    try {
+      var u = new URL(url, document.baseURI);
+      // 只有经本地服务（http/https）读取时才有可写回的目录；file:// 双击模式仅能读快照
+      if (u.protocol === 'http:' || u.protocol === 'https:') p = u.pathname;
+    } catch (e) { p = ''; }
+    state.xlsxPath[kind] = p;
+    return p;
+  }
+
+  function readWorkbook(url) {
+    var kind = (url === CONFIG.usersData) ? 'users' : 'home';
+    return fetchArrayBuffer(url).then(function (buf) {
+      // cellStyles:true 才能读到列宽 / 行高等版式信息，写回时用来保持原表样式
+      var wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true, cellStyles: true });
+      rememberXlsxPath(kind, url);
+      return wb;
+    });
+  }
+
+  function aoaOf(ws) {
+    var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true });
+    return aoa || [];
+  }
+
+  function pickValue(obj, keys) {
+    for (var i = 0; i < keys.length; i++) {
+      if (obj[keys[i]] !== undefined && obj[keys[i]] !== null && String(obj[keys[i]]).trim() !== '') {
+        return obj[keys[i]];
+      }
+    }
+    return '';
+  }
+
+  // 解析 usersData.xlsx → 用户列表 + 权限表
+  function parseUsers(wb) {
+    var users = [], headers = [], sheetName = null;
+    for (var i = 0; i < wb.SheetNames.length; i++) {
+      var n = wb.SheetNames[i];
+      if (n.replace(/\s/g, '') === '用户') { sheetName = n; break; }
+    }
+    if (!sheetName) sheetName = wb.SheetNames[0];
+
+    var uAoa = aoaOf(wb.Sheets[sheetName]);
+    var hIdx = 0;
+    while (hIdx < uAoa.length && isBlankRow(uAoa[hIdx])) hIdx++;
+    if (hIdx < uAoa.length) headers = uAoa[hIdx].map(function (h) { return String(h || '').trim(); });
+
+    for (var r = hIdx + 1; r < uAoa.length; r++) {
+      var row = uAoa[r];
+      if (isBlankRow(row)) continue;
+      var rec = [];
+      for (var c = 0; c < headers.length; c++) { rec.push(isBlank(row[c]) ? '' : row[c]); }
+      if (String(rec[0] || '').trim() === '') continue;
+      users.push(rec);
+    }
+
+    // 权限表
+    var permName = null;
+    for (var k = 0; k < wb.SheetNames.length; k++) {
+      if (wb.SheetNames[k].replace(/\s/g, '') === '用户权限') { permName = wb.SheetNames[k]; break; }
+    }
+    var tables = [];
+    if (permName) {
+      var pAoa = aoaOf(wb.Sheets[permName]);
+      var ph = 0;
+      while (ph < pAoa.length && isBlankRow(pAoa[ph])) ph++;
+      var head = (pAoa[ph] || []).map(function (h) { return String(h || '').trim(); });
+      var idx = {};
+      head.forEach(function (h, i) { idx[h.replace(/\s/g, '')] = i; });
+      var iName = idx['表名'] !== undefined ? idx['表名'] : 0;
+      var iG = idx['一般用户'], iM = idx['管理用户'], iS = idx['超级管理用户'], iD = idx['可删除'];
+      for (var p = ph + 1; p < pAoa.length; p++) {
+        var pr = pAoa[p];
+        if (isBlankRow(pr)) continue;
+        var tname = String(pr[iName] || '').trim();
+        if (!tname) continue;
+        tables.push({
+          name: tname,
+          cols: {
+            '一般用户': iG !== undefined ? Number(pr[iG]) === 1 ? 1 : 0 : 0,
+            '管理用户': iM !== undefined ? Number(pr[iM]) === 1 ? 1 : 0 : 0,
+            '超级管理用户': iS !== undefined ? Number(pr[iS]) === 1 ? 1 : 0 : 0
+          },
+          deletable: iD !== undefined ? (Number(pr[iD]) === 1 ? 1 : 0) : 0
+        });
+      }
+    }
+    return { users: users, headers: headers, sheetName: sheetName, tables: tables };
+  }
+
+  // 快照兜底（file:// 或 xlsx 读取失败时）
+  function parseUsersFromSnapshot() {
+    var snap = window.__USERS_DATA__;
+    if (!snap) throw new Error('无快照');
+    var users = (snap.users || []).map(function (u) {
+      return [u['用户名'] || '', u['用户密码'] || '', u['权限'] || '', u['姓名'] || '', u['备注'] || ''];
+    });
+    return {
+      users: users,
+      headers: ['用户名', '用户密码', '权限', '姓名', '备注'],
+      sheetName: '用户',
+      tables: (snap.perm && snap.perm.tables) ? snap.perm.tables : []
+    };
+  }
+
+  /* ==================== 权限 ==================== */
+  function buildPerm(role) {
+    var map = {};
+    state.permTables.forEach(function (t) {
+      var visible = false, mode = 'r';
+      if (role === ROLE_S) {
+        visible = true; mode = 'rwd';
+      } else if (role === ROLE_M) {
+        visible = t.cols[ROLE_M] === 1;
+        mode = t.deletable === 1 ? 'rwd' : 'rw';
+      } else {
+        visible = t.cols[ROLE_G] === 1;
+        mode = 'r';
+      }
+      map[t.name] = { visible: visible, mode: mode };
+    });
+    return map;
+  }
+
+  function permOf(tableName) {
+    var p = state.perm[tableName];
+    if (p) return p;
+    // 权限表里未配置的表：仅超级管理用户可见
+    if (state.role === ROLE_S) return { visible: true, mode: 'rwd' };
+    return { visible: false, mode: 'r' };
+  }
+
+  // 当前打开方式能否把改动写回磁盘文件：
+  // 只有经本地服务（http）读取 xlsx 时成立；双击 file:// 快照、手动选的本地文件都不行
+  function canWriteFile() {
+    return !state.fileMode && state.dataSource === 'http' && !!state.xlsxPath.home;
+  }
+
+  var READONLY_SOURCE_MSG = '当前是「本地文件 / 数据快照」打开方式，只能查看不能修改。' +
+    '如需修改并自动保存到 Excel，请双击 output 目录的 start-login.bat，用弹出的本地服务地址登录。';
+
+  /* ==================== 工作表解析（含多级表头） ==================== */
+  function looksLikeData(row) {
+    if (!row) return false;
+    for (var i = 0; i < row.length; i++) {
+      var v = row[i];
+      if (isBlank(v)) continue;
+      var s = String(v).trim();
+      if (!s) continue;
+      if (/^-?\d+(\.\d+)?$/.test(s)) return true;
+      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(s)) return true;
+    }
+    return false;
+  }
+
+  function parseSheet(name, ws) {
+    var aoa = aoaOf(ws);
+    // 去掉首尾空行
+    while (aoa.length && isBlankRow(aoa[aoa.length - 1])) aoa.pop();
+    while (aoa.length && isBlankRow(aoa[0])) aoa.shift();
+
+    var cols = 0;
+    aoa.forEach(function (r) { if (r && r.length > cols) cols = r.length; });
+
+    var headerRows = 0;
+    var limit = Math.min(aoa.length, 4);
+    for (var i = 0; i < limit; i++) {
+      if (looksLikeData(aoa[i])) break;
+      headerRows++;
+    }
+    if (!aoa.length) { headerRows = 0; cols = 0; }
+
+    var merges = (ws['!merges'] || []).map(function (m) {
+      return { s: { r: m.s.r, c: m.s.c }, e: { r: m.e.r, c: m.e.c } };
+    });
+
+    var records = aoa.slice(headerRows).map(function (row) {
+      var out = [];
+      for (var c = 0; c < cols; c++) out.push(isBlank(row[c]) ? '' : row[c]);
+      return out;
+    });
+
+    return {
+      name: name,
+      headerRows: headerRows,
+      cols: cols,
+      merges: merges,
+      headers: aoa.slice(0, headerRows),
+      records: records,
+      dirty: false
+    };
+  }
+
+  // 空表时的默认列（新增行时建立表头）
+  var DEFAULT_COLS = ['序号', '品种', '日期', '数量', '经办人', '备注'];
+
+  function emptySheet(name) {
+    return {
+      name: name, headerRows: 0, cols: 0, merges: [],
+      headers: [], records: [], dirty: false, isNewHeader: false
+    };
+  }
+
+  function getSheet(name) {
+    if (state.cache[name]) return state.cache[name];
+    var sh;
+    if (name === CONFIG.userSheetLabel) {
+      sh = {
+        name: name,
+        headerRows: 1,
+        cols: state.userHeaders.length || 5,
+        merges: [],
+        headers: [state.userHeaders.length ? state.userHeaders.slice() : ['用户名', '用户密码', '权限', '姓名', '备注']],
+        records: state.users.map(function (r) { return r.slice(); }),
+        dirty: false
+      };
+    } else {
+      var ws = state.homeWb && state.homeWb.Sheets[name];
+      sh = ws ? parseSheet(name, ws) : emptySheet(name);
+    }
+    state.cache[name] = sh;
+    return sh;
+  }
+
+  /* ==================== 表头渲染 ==================== */
+  // canDelete = 该表对当前账号有删除权限：表头末尾补一列「操作」，纵向合并整段表头
+  function headerHTML(sh, canDelete) {
+    var hr = sh.headerRows, cols = sh.cols;
+    if (!hr || !cols) return '';
+    var skip = {}, span = {};
+    sh.merges.forEach(function (m) {
+      if (m.s.r >= hr) return;
+      var maxR = Math.min(m.e.r, hr - 1);
+      var rs = maxR - m.s.r + 1;
+      var cs = m.e.c - m.s.c + 1;
+      if (rs * cs <= 1) return;
+      span[m.s.r + ',' + m.s.c] = { rs: rs, cs: cs };
+      for (var r = m.s.r; r <= maxR; r++) {
+        for (var c = m.s.c; c <= m.e.c; c++) {
+          if (r === m.s.r && c === m.s.c) continue;
+          skip[r + ',' + c] = true;
+        }
+      }
+    });
+
+    var html = '<thead>';
+    for (var r = 0; r < hr; r++) {
+      html += '<tr>';
+      for (var c = 0; c < cols; c++) {
+        if (skip[r + ',' + c]) continue;
+        var sp = span[r + ',' + c] || { rs: 1, cs: 1 };
+        var row = sh.headers[r] || [];
+        var v = isBlank(row[c]) ? '' : String(row[c]);
+        var cls = (hr > 1 && r > 0) ? ' class="sub"' : '';
+        html += '<th' + cls + (sp.rs > 1 ? ' rowspan="' + sp.rs + '"' : '') + (sp.cs > 1 ? ' colspan="' + sp.cs + '"' : '') + '>' + esc(v) + '</th>';
+      }
+      if (canDelete && r === 0) {
+        // 删除按钮列：表头首行写「操作」，rowspan 合并全部表头行，样式与其它表头一致
+        html += '<th class="op-head" rowspan="' + hr + '">操作</th>';
+      }
+      html += '</tr>';
+    }
+    html += '</thead>';
+    return html;
+  }
+
+  // 导出用：把多级表头压成单行列名（父-子）
+  function flatHeaders(sh) {
+    var cols = sh.cols || (sh.records[0] ? sh.records[0].length : 0);
+    var hr = sh.headerRows;
+    var grid = [];
+    for (var r = 0; r < hr; r++) {
+      grid.push(new Array(cols).fill(''));
+      var src = sh.headers[r] || [];
+      for (var c = 0; c < cols; c++) grid[r][c] = isBlank(src[c]) ? '' : String(src[c]).trim();
+    }
+    // 合并区域向下填充
+    sh.merges.forEach(function (m) {
+      if (m.s.r >= hr) return;
+      var v = grid[m.s.r] ? grid[m.s.r][m.s.c] : '';
+      for (var r2 = m.s.r; r2 <= Math.min(m.e.r, hr - 1); r2++) {
+        for (var c2 = m.s.c; c2 <= m.e.c; c2++) {
+          if (grid[r2] && c2 < cols) grid[r2][c2] = v;
+        }
+      }
+    });
+    // 未合并的空格纵向继承
+    for (var c3 = 0; c3 < cols; c3++) {
+      var last = '';
+      for (var r3 = 0; r3 < hr; r3++) {
+        if (grid[r3][c3]) last = grid[r3][c3];
+        else grid[r3][c3] = last;
+      }
+    }
+    var names = [];
+    for (var c4 = 0; c4 < cols; c4++) {
+      var parts = [];
+      for (var r4 = 0; r4 < hr; r4++) {
+        var v2 = grid[r4][c4];
+        if (v2 && parts[parts.length - 1] !== v2) parts.push(v2);
+      }
+      names.push(parts.join('-') || '列' + (c4 + 1));
+    }
+    return names;
+  }
+
+  // 在多级表头拼接名中定位目标列：
+  // 先精确匹配（"溯源码"），再按末段匹配（"中药材溯源记录信息-溯源码"），最后才允许唯一的包含匹配
+  function findHeaderCol(names, target) {
+    var i = names.indexOf(target);
+    if (i >= 0) return i;
+    for (var k = 0; k < names.length; k++) {
+      var segs = String(names[k]).split('-');
+      if (segs.length > 1 && segs[segs.length - 1].trim() === target) return k;
+    }
+    var hits = [];
+    for (var j = 0; j < names.length; j++) {
+      if (String(names[j]).indexOf(target) >= 0) hits.push(j);
+    }
+    return hits.length === 1 ? hits[0] : -1;
+  }
+
+  /* ==================== 菜单与首页 ==================== */
+  function visibleTableNames() {
+    var names = [];
+    if (state.homeWb) {
+      state.homeWb.SheetNames.forEach(function (n) {
+        if (permOf(n).visible) names.push(n);
+      });
+    }
+    if (permOf(CONFIG.userSheetLabel).visible) names.push(CONFIG.userSheetLabel);
+    return names;
+  }
+
+  function renderMenu() {
+    var names = visibleTableNames();
+    var html = '<div class="nav-item' + (state.current === '' ? ' active' : '') + '" data-target="" data-name="首页">' +
+      '<span class="dot"></span><span class="nav-text">首页</span></div>';
+    if (!names.length) {
+      html += '<div class="nav-sep"></div><div class="nav-item" style="cursor:default;color:#8b9a91;font-size:12.5px;">暂无可见数据表</div>';
+    } else {
+      html += '<div class="nav-sep"></div>';
+      names.forEach(function (n) {
+        var p = permOf(n);
+        var label = esc(n);
+        html += '<div class="nav-item' + (state.current === n ? ' active' : '') + '" data-target="' + label + '" data-name="' + label + '">' +
+          '<span class="dot"></span><span class="nav-text">' + esc(n) + '</span>' +
+          '<span class="tag">' + (p.mode === 'r' ? '只读' : p.mode === 'rw' ? '可改' : '可删改') + '</span></div>';
+      });
+    }
+    $('menu').innerHTML = html;
+  }
+
+  function renderHome() {
+    $('welcomeName').textContent = state.realName || AUTH.user || '—';
+    var names = visibleTableNames();
+    var modes = names.map(function (n) { return permOf(n).mode; });
+    var best = modes.indexOf('rwd') !== -1 ? 'rwd' : (modes.indexOf('rw') !== -1 ? 'rw' : 'r');
+    $('permLine').textContent = '当前权限：' + state.role + ' · ' + MODE_TEXT[best] + ' · 可见 ' + names.length + ' 张表';
+
+    var cards = names.map(function (n) {
+      var sh = getSheet(n);
+      var cnt = sh.records.length;
+      var p = permOf(n);
+      return '<div class="card" data-target="' + esc(n) + '">' +
+        '<div class="c-name">' + esc(n) + '</div>' +
+        '<div class="c-meta"><span>' + (cnt ? cnt + ' 条记录' : '暂无数据') + '</span>' +
+        '<span class="c-mode ' + p.mode + '">' + (p.mode === 'r' ? '只读' : p.mode === 'rw' ? '可增改' : '可增删改') + '</span></div>' +
+        '</div>';
+    }).join('');
+    $('cardGrid').innerHTML = cards || '<div class="empty">暂无可访问的数据表，请联系管理员在 <code>usersData.xlsx</code> 中配置权限。</div>';
+
+    $('heroImg').onerror = function () {
+      this.style.display = 'none';
+      this.parentNode.style.background = 'linear-gradient(120deg,#17553a,#2b7d54)';
+      this.parentNode.style.height = '260px';
+    };
+  }
+
+  /* ==================== 数据表视图 ==================== */
+  function filteredRecords(sh) {
+    var kw = state.keyword.trim().toLowerCase();
+    if (!kw) return sh.records.map(function (r, i) { return { row: r, idx: i }; });
+    var out = [];
+    sh.records.forEach(function (r, i) {
+      for (var c = 0; c < r.length; c++) {
+        if (String(r[c]).toLowerCase().indexOf(kw) !== -1) { out.push({ row: r, idx: i }); return; }
+      }
+    });
+    return out;
+  }
+
+  function isNumericCell(v) {
+    var s = String(v).trim();
+    return s !== '' && /^-?\d+(\.\d+)?$/.test(s);
+  }
+
+  /* ---------- 溯源明细：「见详细/见溯源」→ 溯源页面链接 ---------- */
+  // 清洗文件名片段：去掉文件系统与 URL 的非法/保留字符
+  function traceSeg(v) {
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/[\\/:*?"<>|#%&?=+]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\.+$/, '');
+  }
+  // 生成本行应跳转的相对地址：./syHtml/溯源码/溯源码_名称_加工批次.html
+  function traceHref(row, m) {
+    if (!row || !m) return '';
+    var parts = [];
+    for (var i = 0; i < m.cols.length; i++) {
+      var seg = traceSeg(row[m.cols[i]]);
+      if (!seg) return '';               // 关键列缺值则不生成链接
+      parts.push(seg);
+    }
+    var fileName = parts.join(CONFIG.traceFileSep || '_') + '.html';
+    var dir = CONFIG.traceByCodeDir && parts[0] ? parts[0] + '/' : '';
+    return CONFIG.traceDir + encodeURI(dir + fileName);
+  }
+
+  /* ---------- 溯源链接点击：页面未生成时给出提示，而不是跳到 404 ---------- */
+  // 只在 http(s) 下探测（file:// 无法发请求，直接打开交给浏览器处理）
+  var traceProbe = {};
+  function traceToast(msg) {
+    if (typeof toast === 'function') toast(msg, true);
+    else alert(msg);
+  }
+  function openTracePage(a, href) {
+    if (traceProbe[href] === true) { window.open(href, '_blank', 'noopener'); return; }
+    if (traceProbe[href] === false) {
+      traceToast('「' + a.getAttribute('data-trace') + '」的溯源页面尚未生成：' + decodeURI(href));
+      return;
+    }
+    a.classList.add('checking');
+    fetch(href, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
+      a.classList.remove('checking');
+      traceProbe[href] = !!r.ok;
+      if (r.ok) window.open(href, '_blank', 'noopener');
+      else traceToast('「' + a.getAttribute('data-trace') + '」的溯源页面尚未生成：' + decodeURI(href));
+    }).catch(function () {
+      a.classList.remove('checking');
+      traceProbe[href] = false;
+      traceToast('「' + a.getAttribute('data-trace') + '」的溯源页面尚未生成：' + decodeURI(href));
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && el !== document && !(el.classList && el.classList.contains('trace-link'))) el = el.parentNode;
+    if (!el || !el.classList || !el.classList.contains('trace-link')) return;
+    var href = el.getAttribute('href');
+    if (!href) return;
+    if (location.protocol === 'file:') return;   // 本地双击打开：直接跳转
+    e.preventDefault();
+    openTracePage(el, href);
+  }, true);
+
+  function renderData() {
+    var sh = getSheet(state.current);
+    var p = permOf(state.current);
+    var writable = canWriteFile();                    // 打开方式是否允许写回文件
+    var canWrite = p.mode !== 'r' && writable;
+    var canDelete = p.mode === 'rwd' && writable;
+
+    $('sheetTitle').textContent = state.current;
+    $('modeBadge').textContent = writable ? MODE_TEXT[p.mode] : '仅查看 · 本地文件模式';
+    $('modeBadge').title = writable ? '' : READONLY_SOURCE_MSG;
+    $('btnAdd').disabled = !canWrite;
+    $('btnRevert').disabled = !canWrite;
+
+    // 空表（无表头）
+    if (!sh.cols || !sh.headerRows) {
+      $('tableWrap').innerHTML = '<div class="empty"><strong>「' + esc(state.current) + '」暂无数据</strong>' +
+        (canWrite
+          ? '该表在 <code>homeData.xlsx</code> 中还没有表头与记录。<br>点击右上角「新增行」可按默认列（序号 / 品种 / 日期 / 数量 / 经办人 / 备注）开始录入；<br>如需自定义列名，请先在 Excel 中写入表头后重新加载。'
+          : (writable ? '当前账号为只读权限，等待管理员录入数据。' : '当前打开方式为只读（本地文件 / 数据快照），无法录入数据。')) + '</div>';
+      $('pager').innerHTML = '';
+      $('status').textContent = '';
+      return;
+    }
+
+    var list = filteredRecords(sh);
+    var total = list.length;
+    var pageSize = state.pageSize;
+    var pages = Math.max(1, Math.ceil(total / pageSize));
+    if (state.page > pages) state.page = pages;
+    if (state.page < 1) state.page = 1;
+    var start = (state.page - 1) * pageSize;
+    var slice = list.slice(start, start + pageSize);
+
+    // 「溯源明细」表：定位「见详细」列与文件名所需的 溯源码/名称/加工批次 列
+    var traceMap = null;
+    if (state.current === CONFIG.traceSheetLabel) {
+      var fh = flatHeaders(sh);
+      var iDetail = findHeaderCol(fh, CONFIG.traceLinkCol);
+      var fileCols = CONFIG.traceFileCols.map(function (n) { return findHeaderCol(fh, n); });
+      var ok = iDetail >= 0;
+      fileCols.forEach(function (x) { if (x < 0) ok = false; });
+      if (ok) traceMap = { detail: iDetail, cols: fileCols };
+    }
+
+    var html = '<table class="grid">' + headerHTML(sh, canDelete) + '<tbody>';
+    if (!slice.length) {
+      html += '<tr><td colspan="' + (sh.cols + (canDelete ? 1 : 0)) + '" style="text-align:center;color:#6d7d73;padding:32px;">' +
+        (state.keyword ? '没有匹配「' + esc(state.keyword) + '」的记录' : '暂无可显示的数据') + '</td></tr>';
+    } else {
+      slice.forEach(function (item) {
+        html += '<tr>';
+        for (var c = 0; c < sh.cols; c++) {
+          var v = item.row[c];
+          var txt = isBlank(v) ? '' : String(v);
+          var cls = [];
+          if (txt.length > 24) cls.push('wrap');
+          else if (isNumericCell(txt)) cls.push('num');
+          if (canWrite && !(state.current === CONFIG.userSheetLabel && state.role !== ROLE_S && c === 1)) cls.push('editable');
+          // 「见详细」列的「见溯源」→ 溯源页面超链接
+          if (traceMap && c === traceMap.detail && txt.replace(/\s/g, '').indexOf(CONFIG.traceLinkText) !== -1) {
+            var href = traceHref(item.row, traceMap);
+            cls = cls.filter(function (x) { return x !== 'editable'; });
+            var inner = href
+              ? '<a class="trace-link" href="' + esc(href) + '" target="_blank" rel="noopener"' +
+                ' data-trace="' + esc(item.row[traceMap.cols[0]] || '') + '"' +
+                ' title="打开溯源详情：' + esc(decodeURI(href)) + '">' + esc(txt) + '</a>'
+              : esc(txt);
+            html += '<td class="' + cls.join(' ') + '" data-r="' + item.idx + '" data-c="' + c + '">' + inner + '</td>';
+            continue;
+          }
+          var display = txt;
+          if (state.current === CONFIG.userSheetLabel && state.role !== ROLE_S && c === 1) {
+            display = txt ? '<span class="masked">••••••</span>' : '<span class="masked">未设置</span>';
+            html += '<td class="' + cls.join(' ') + '" data-r="' + item.idx + '" data-c="' + c + '">' + display + '</td>';
+            continue;
+          }
+          html += '<td class="' + cls.join(' ') + '" data-r="' + item.idx + '" data-c="' + c + '">' + esc(txt) + '</td>';
+        }
+        if (canDelete) {
+          html += '<td class="op"><button class="mini" data-del="' + item.idx + '">删除</button></td>';
+        }
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table>';
+    $('tableWrap').innerHTML = html;
+    stickyHead();
+
+    // 分页条
+    var pg = [];
+    pg.push('<button class="btn" data-pg="first"' + (state.page === 1 ? ' disabled' : '') + '>首页</button>');
+    pg.push('<button class="btn" data-pg="prev"' + (state.page === 1 ? ' disabled' : '') + '>上一页</button>');
+    pg.push('<span class="page-info">共 ' + total + ' 条 · 第 ' + state.page + ' / ' + pages + ' 页</span>');
+    pg.push('<button class="btn" data-pg="next"' + (state.page === pages ? ' disabled' : '') + '>下一页</button>');
+    pg.push('<button class="btn" data-pg="last"' + (state.page === pages ? ' disabled' : '') + '>末页</button>');
+    $('pager').innerHTML = pg.join('');
+
+    updateStatus();
+  }
+
+  function stickyHead() {
+    var wrap = $('tableWrap');
+    var rows = wrap.querySelectorAll('thead tr');
+    if (!rows.length) return;
+    var top = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var cells = rows[i].querySelectorAll('th');
+      var rowH = 0;
+      for (var j = 0; j < cells.length; j++) {
+        // 合并单元格（rowspan>1）会把整行撑高，计算行基线时忽略它们
+        if (parseInt(cells[j].getAttribute('rowspan') || '1', 10) === 1) {
+          rowH = Math.max(rowH, cells[j].offsetHeight);
+        }
+      }
+      if (!rowH) rowH = 36;
+      for (var k = 0; k < cells.length; k++) cells[k].style.top = top + 'px';
+      top += rowH;
+    }
+  }
+
+  /* ==================== 编辑（内存态） ==================== */
+  function setCell(sh, idx, col, value, colName) {
+    if (!sh.records[idx]) return;
+    var old = sh.records[idx][col];
+    if (String(old === undefined || old === null ? '' : old) === String(value)) return;
+    sh.records[idx][col] = value;
+    sh.dirty = true;
+    state.editSeq[state.current] = (state.editSeq[state.current] || 0) + 1;
+    scheduleSave(state.current);
+  }
+
+  function beginEdit(td) {
+    var sh = getSheet(state.current);
+    var p = permOf(state.current);
+    if (p.mode === 'r') { toast('当前账号对该表只有查询权限，不能修改。', true); return; }
+    if (!canWriteFile()) { toast(READONLY_SOURCE_MSG, true); return; }
+    var idx = parseInt(td.getAttribute('data-r'), 10);
+    var col = parseInt(td.getAttribute('data-c'), 10);
+    if (isNaN(idx) || isNaN(col) || !sh.records[idx]) return;
+    if (td.querySelector('input,select')) return;
+
+    var isPwd = state.current === CONFIG.userSheetLabel && col === 1;
+    var isRoleCol = state.current === CONFIG.userSheetLabel && col === 2;
+    var cur = sh.records[idx][col];
+    cur = isBlank(cur) ? '' : String(cur);
+
+    if (isPwd && state.role !== ROLE_S) {
+      // 非超级用户：可重设密码，但不回显原密码
+      td.classList.add('editing');
+      var pin = document.createElement('input');
+      pin.className = 'cell-input';
+      pin.type = 'text';
+      pin.placeholder = '输入新密码（留空不改）';
+      pin.value = '';
+      td.innerHTML = '';
+      td.appendChild(pin);
+      pin.focus();
+      var commitPwd = function () {
+        if (!pin.parentNode) return;
+        var nv = pin.value.trim();
+        if (nv) { setCell(sh, idx, col, nv); toast('密码已重置，正在写入文件'); }
+        renderData();
+      };
+      pin.addEventListener('blur', commitPwd);
+      pin.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') pin.blur();
+        else if (e.key === 'Escape') { pin.value = ''; pin.blur(); }
+      });
+      return;
+    }
+
+    var ctrl;
+    if (isRoleCol) {
+      ctrl = document.createElement('select');
+      ctrl.className = 'cell-select';
+      [ROLE_G, ROLE_M, ROLE_S].forEach(function (r) {
+        var o = document.createElement('option');
+        o.value = r; o.textContent = r;
+        if (r === cur) o.selected = true;
+        ctrl.appendChild(o);
+      });
+    } else {
+      ctrl = document.createElement('input');
+      ctrl.className = 'cell-input';
+      ctrl.type = 'text';
+      ctrl.value = cur;
+    }
+
+    td.classList.add('editing');
+    td.innerHTML = '';
+    td.appendChild(ctrl);
+    ctrl.focus();
+    if (ctrl.select) ctrl.select();
+
+    var done = false;
+    var commit = function () {
+      if (done) return;
+      done = true;
+      var nv = ctrl.value;
+      setCell(sh, idx, col, nv);
+      renderData();
+    };
+    ctrl.addEventListener('blur', commit);
+    ctrl.addEventListener('change', function () { commit(); });
+    ctrl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); done = true; renderData(); }
+    });
+  }
+
+  function addRow() {
+    var sh = getSheet(state.current);
+    var p = permOf(state.current);
+    if (p.mode === 'r') { toast('当前为只读权限，无法新增', true); return; }
+    if (!canWriteFile()) { toast(READONLY_SOURCE_MSG, true); return; }
+
+    if (!sh.headerRows || !sh.cols) {
+      sh.headers = [DEFAULT_COLS.slice()];
+      sh.headerRows = 1;
+      sh.cols = DEFAULT_COLS.length;
+      sh.merges = [];
+      sh.records = [];
+      sh.dirty = true;
+      toast('已建立默认表头，可直接编辑单元格');
+    }
+    var blank = [];
+    for (var c = 0; c < sh.cols; c++) blank.push('');
+    sh.records.push(blank);
+    sh.dirty = true;
+    state.editSeq[state.current] = (state.editSeq[state.current] || 0) + 1;
+    scheduleSave(state.current);
+    // 跳到最后一页并高亮
+    var total = filteredRecords(sh).length;
+    state.page = Math.max(1, Math.ceil(total / state.pageSize));
+    renderData();
+  }
+
+  function delRow(idx) {
+    var sh = getSheet(state.current);
+    var p = permOf(state.current);
+    if (p.mode !== 'rwd') { toast('当前权限不可删除', true); return; }
+    if (!canWriteFile()) { toast(READONLY_SOURCE_MSG, true); return; }
+    if (!confirm('确认删除第 ' + (idx + 1) + ' 行数据？（删除后会自动覆盖写入原 xlsx 文件，不可撤销）')) return;
+    sh.records.splice(idx, 1);
+    sh.dirty = true;
+    state.editSeq[state.current] = (state.editSeq[state.current] || 0) + 1;
+    scheduleSave(state.current);
+    var total = filteredRecords(sh).length;
+    var pages = Math.max(1, Math.ceil(total / state.pageSize));
+    if (state.page > pages) state.page = pages;
+    renderData();
+    toast('已删除 1 行，正在写入文件');
+  }
+
+  function revertEdits() {
+    var sh = getSheet(state.current);
+    if (!canWriteFile()) { toast(READONLY_SOURCE_MSG, true); return; }
+    if (!sh.dirty) { toast('当前表没有未保存的修改'); return; }
+    if (!confirm('确认放弃「' + state.current + '」本次的全部编辑，恢复到文件中的原始数据？')) return;
+    delete state.cache[state.current];
+    if (state.current === CONFIG.userSheetLabel) {
+      // 用户表恢复到解析时的状态
+      var pr = state.userOriginal;
+      if (pr) {
+        state.users = pr.users.map(function (r) { return r.slice(); });
+        state.userHeaders = pr.headers.slice();
+      }
+      delete state.cache[state.current];
+    }
+    // 已自动写盘的表，撤销后同样写回，保证页面与文件一致
+    var sh2 = getSheet(state.current);
+    sh2.dirty = true;
+    state.editSeq[state.current] = (state.editSeq[state.current] || 0) + 1;
+    scheduleSave(state.current);
+    renderData();
+    renderHome();
+    toast('已恢复到原始数据');
+  }
+
+  /* ==================== 自动保存：直接覆盖原 xlsx ==================== */
+  function cloneWb(wb) {
+    var out = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, compression: true });
+    return XLSX.read(new Uint8Array(out), { type: 'array', cellDates: true, cellStyles: true });
+  }
+
+  // 把页面数据灌回原工作表：未改动的单元格原样保留（含样式、数字/日期类型、格式），只改写真正的变化
+  function guessCellValue(v) {
+    var s = String(v === null || v === undefined ? '' : v).trim();
+    // 纯数字且位数不大 → 存成数值，Excel 里可直接求和；长串（批号、电话、编号）保持文本
+    if (/^-?(0|[1-9]\d{0,8})(\.\d+)?$/.test(s)) {
+      var n = Number(s);
+      if (isFinite(n)) return { t: 'n', v: n };
+    }
+    return { t: 's', v: String(v) };
+  }
+
+  function applyAoaToSheet(ws, aoa) {
+    if (!ws || !aoa) return ws;
+    var rows = aoa.length, cols = 0;
+    for (var i = 0; i < rows; i++) cols = Math.max(cols, aoa[i].length);
+    var p;
+    for (p in ws) {
+      if (p.charAt(0) === '!') continue;
+      var d = XLSX.utils.decode_cell(p);
+      if (d.r >= rows || d.c >= cols) delete ws[p];
+    }
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var addr = XLSX.utils.encode_cell({ r: r, c: c });
+        var val = aoa[r][c];
+        var old = ws[addr];
+        var txt = (val === null || val === undefined) ? '' : String(val);
+        if (txt.trim() === '') { if (old) delete ws[addr]; continue; }
+        if (old && String(cellText(old)).trim() === txt.trim()) continue;  // 内容没变 → 保留原单元格
+        var gv = guessCellValue(val);
+        ws[addr] = { t: gv.t, v: gv.v };
+        if (old && old.z && gv.t === 'n') ws[addr].z = old.z;
+      }
+    }
+    ws['!ref'] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 }, e: { r: Math.max(rows - 1, 0), c: Math.max(cols - 1, 0) }
+    });
+    if (ws['!rows']) ws['!rows'] = ws['!rows'].slice(0, rows);
+    if (ws['!merges']) {
+      ws['!merges'] = ws['!merges'].filter(function (m) { return m && m.e && m.e.r < rows && m.e.c < cols; });
+    }
+    return ws;
+  }
+
+  // 按原始多级表头结构拼回完整数据（保留表头行数，不扁平化）
+  function sheetAoa(name) {
+    var sh = getSheet(name);
+    if (!sh.headerRows || !sh.cols) return null;
+    var aoa = [];
+    for (var r = 0; r < sh.headerRows; r++) {
+      var src = sh.headers[r] || [];
+      var hrow = [];
+      for (var c = 0; c < sh.cols; c++) hrow.push(isBlank(src[c]) ? '' : src[c]);
+      aoa.push(hrow);
+    }
+    sh.records.forEach(function (rec) {
+      var row = [];
+      for (var c = 0; c < sh.cols; c++) row.push(isBlank(rec[c]) ? '' : rec[c]);
+      aoa.push(row);
+    });
+    return aoa;
+  }
+
+  function bookOf(name) {
+    return (name === CONFIG.userSheetLabel) ? state.usersWb : state.homeWb;
+  }
+
+  function pathOf(name) {
+    return (name === CONFIG.userSheetLabel) ? state.xlsxPath.users : state.xlsxPath.home;
+  }
+
+  function toBase64(u8) {
+    var s = '';
+    var CH = 0x8000;
+    for (var i = 0; i < u8.length; i += CH) {
+      s += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+    }
+    return btoa(s);
+  }
+
+  var saveTimer = null;
+  var saveQueue = {};
+
+  // 数据发生变化后调用：500ms 内的连续编辑合并成一次写盘
+  function scheduleSave(name) {
+    if (!name) return;
+    if (permOf(name).mode === 'r') return;      // 只读用户不落盘
+    if (!canWriteFile() || !pathOf(name)) {
+      // 双击(file://)快照 / 手选的本地文件：浏览器拿不到可写路径，改动不允许落盘
+      updateStatus();
+      return;
+    }
+    saveQueue[name] = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSaves, 500);
+  }
+
+  function flushSaves() {
+    var names = Object.keys(saveQueue);
+    saveQueue = {};
+    names.forEach(function (n) { saveOne(n); });
+  }
+
+  // 本地服务按 ASCII 读取请求体：中文（工作表名、单元格内容）必须转成 \uXXXX，
+  // 否则到了服务端会变成问号，导致「工作簿中没有名为 ?? 的工作表」
+  function asciiJson(text) {
+    return String(text).replace(/[\u007f-\uffff]/g, function (ch) {
+      return '\\u' + ('0000' + ch.charCodeAt(0).toString(16)).slice(-4);
+    });
+  }
+
+  function postJson(body) {
+    return fetch(CONFIG.saveEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: asciiJson(body)
+    }).then(function (res) {
+      return res.text().then(function (t) {
+        var r = null;
+        try { r = JSON.parse(t); } catch (e) { /* 非 JSON：说明服务不支持该接口 */ }
+        if (!r) throw new Error('本地服务未提供自动保存接口（HTTP ' + res.status + '），请用 start-login.bat 启动服务');
+        if (!r.ok) throw new Error(r.error || '写入失败');
+        return r;
+      });
+    });
+  }
+
+  // 写盘失败：自动重试 2 次（间隔 6 秒），仍失败则亮出「重试保存」按钮
+  function saveFailed(name, msg) {
+    state.saveErr[name] = msg || '未知错误';
+    var n = state.retryCount[name] || 0;
+    if (canWriteFile() && n < 2) {
+      state.retryCount[name] = n + 1;
+      clearTimeout(state.retryTimer[name]);
+      state.retryTimer[name] = setTimeout(function () {
+        if (getSheet(name).dirty) saveOne(name);
+      }, 6000);
+      toast('保存失败：' + state.saveErr[name] + '（' + (n + 1) + '/2，6 秒后自动重试）', true);
+      updateStatus();
+      return;
+    }
+    toast('保存失败：' + state.saveErr[name] + '。修改仍保留在页面中，处理后点「重试保存」即可。', true);
+    updateStatus();
+  }
+
+  function retrySaveNow() {
+    var name = state.current;
+    if (!name) return;
+    var sh = getSheet(name);
+    if (!sh.dirty) { toast('当前没有待保存的修改'); return; }
+    state.saveErr[name] = '';
+    state.retryCount[name] = 0;
+    clearTimeout(state.retryTimer[name]);
+    saveOne(name);
+  }
+
+  // 还原上一版：用 data\backup 里最近一次自动备份覆盖回表格文件，然后把当前表重新读进来
+  function restoreLast() {
+    var name = state.current;
+    if (!name) return;
+    var path = pathOf(name);
+    if (!path) { toast('该表没有对应的数据文件', true); return; }
+    var sh = getSheet(name);
+    var warn = (sh && sh.dirty)
+      ? '页面里还有未保存的修改，还原后这些修改会丢失。\n\n确定用最近一次备份覆盖表格文件吗？'
+      : '确定用最近一次备份把该表格文件还原吗？';
+    if (!window.confirm(warn)) return;
+    fetch(CONFIG.restoreEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: asciiJson({ path: path })
+    }).then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (r) {
+        if (!r || !r.ok) throw new Error((r && r.error) || '还原失败');
+        toast('已还原：' + name + '（备份文件 ' + r.from + '）');
+        setTimeout(function () { location.reload(); }, 800);
+      })
+      .catch(function (e) {
+        toast('还原失败：' + ((e && e.message) || '未知错误') + '（若文件正被 Excel / WPS 打开，请先关闭）', true);
+      });
+  }
+
+  // 组装「精确保留格式」的写回请求：只提交数据区的行内容，表头行与整套格式由原文件自己带着
+  function buildPatch(name) {
+    var sh = getSheet(name);
+    var path = pathOf(name);
+    if (!canWriteFile()) { saveFailed(name, '当前打开方式不支持写回文件'); return null; }
+    if (!path) { saveFailed(name, '没有记录到数据文件的写入路径'); return null; }
+    if (!sh.headerRows || !sh.cols) { saveFailed(name, '表格结构未识别，无法写回'); return null; }
+
+    var sheetName = (name === CONFIG.userSheetLabel) ? state.userSheetName : name;
+    var rows = [];
+    sh.records.forEach(function (rec) {
+      var row = [];
+      for (var c = 0; c < sh.cols; c++) {
+        var v = isBlank(rec[c]) ? '' : rec[c];
+        if (v !== '' && typeof v !== 'number') v = String(cellText(v));
+        row.push(v);
+      }
+      rows.push(row);
+    });
+
+    var payload = { path: path, sheet: sheetName, headerRows: sh.headerRows, rows: rows };
+    var body = asciiJson(JSON.stringify(payload));
+    return {
+      path: path, sheetName: sheetName, headerRows: sh.headerRows, rows: rows,
+      body: body, aoa: sheetAoa(name)
+    };
+  }
+
+  // 调本地服务的精确改写接口：正常返回 {ok:true,...}，业务失败返回 {ok:false, code, error}，不抛异常
+  function postPatch(body) {
+    return fetch(CONFIG.patchEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body
+    }).then(function (res) {
+      return res.text().then(function (t) {
+        var r = null;
+        try { r = JSON.parse(t); } catch (e) { /* 非 JSON：说明服务不支持该接口 */ }
+        if (!r) throw new Error('本地服务未提供格式化保存接口（HTTP ' + res.status + '），请用 start-login.bat 启动服务');
+        return r;
+      });
+    });
+  }
+
+  // 兜底写入引擎按需加载（只有 Excel 不可用时才会用到）
+  var excelJsLoading = null;
+  function loadExcelJs() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    if (excelJsLoading) return excelJsLoading;
+    excelJsLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = CONFIG.excelJsPath;
+      s.onload = function () {
+        if (window.ExcelJS) resolve(window.ExcelJS);
+        else reject(new Error('内置写入引擎加载失败'));
+      };
+      s.onerror = function () { reject(new Error('内置写入引擎缺失：' + CONFIG.excelJsPath)); };
+      document.head.appendChild(s);
+    });
+    return excelJsLoading;
+  }
+
+  // 【已停用】浏览器端 ExcelJS 相当于"整本重新写一遍"，实测会改列宽、把标题字体写成加粗、丢格式，
+  // 一旦启用就会出现"删一行、六张表格式全变"。保留代码仅供排查，任何情况下都不要再调用。
+  // 页面即将关闭：用 sendBeacon 把待保存内容丢出去（普通 fetch 会被浏览器取消）
+  function beaconSaves() {
+    if (!navigator.sendBeacon) return;
+    Object.keys(state.cache || {}).forEach(function (name) {
+      var sh = state.cache[name];
+      if (!sh || !sh.dirty) return;
+      try {
+        var pack = buildPatch(name);
+        if (!pack) return;
+        navigator.sendBeacon(CONFIG.patchEndpoint, new Blob([pack.body], { type: 'text/plain;charset=UTF-8' }));
+      } catch (e) { }
+    });
+  }
+
+  // 写回成功后的收尾：内存工作簿同步、脏标记复位、快照更新
+  function afterSaved(name, seq, r) {
+    var sh = getSheet(name);
+    var wb = bookOf(name);
+    var aoa = sheetAoa(name);
+    var sheetName = (name === CONFIG.userSheetLabel) ? state.userSheetName : name;
+    if (wb && aoa) {
+      try {
+        var ws = wb.Sheets[sheetName];
+        if (!ws) {
+          ws = { '!ref': 'A1' };
+          wb.Sheets[sheetName] = ws;
+          if (wb.SheetNames.indexOf(sheetName) === -1) wb.SheetNames.push(sheetName);
+        }
+        applyAoaToSheet(ws, aoa);   // 内存副本同步，快照与后续读取都基于新数据
+      } catch (e) { }
+    }
+    if ((state.editSeq[name] || 0) === seq) sh.dirty = false;
+    state.savedAt[name] = Date.now();
+    state.saveErr[name] = '';
+    state.retryCount[name] = 0;
+    clearTimeout(state.retryTimer[name]);
+    toast('已保存，原表格格式完整保留');
+    saveSnapshot(name);           // xlsx 已写回 → 同步 data 目录下的 js 快照
+  }
+
+  function saveOne(name) {
+    var sh = getSheet(name);
+    if (!sh.dirty) return;
+    var pack = buildPatch(name);
+    if (!pack) return;
+    var seq = state.editSeq[name] || 0;
+
+    state.saving = true;
+    updateStatus();
+    postPatch(pack.body).then(function (r) {
+      if (r && r.ok) return afterSaved(name, seq, r);
+      // 关键：任何失败都不再退回「整本重写」（会压平字体/边框/列宽，导致六张表格式全变）。
+      // 只如实报错，改动留在页面里，关闭 Excel/WPS 中打开的该文件后点「重试保存」即可。
+      var msg = (r && r.error) ? r.error : '写入失败';
+      if (r && r.code === 'locked') msg += '（关闭 Excel / WPS 里打开的该文件后，点「重试保存」即可）';
+      if (r && r.code === 'selfcheck') msg += '（已自动回滚，表格没有被改坏）';
+      saveFailed(name, msg);
+    }).catch(function (err) {
+      saveFailed(name, err && err.message ? err.message : '未知错误');
+    }).then(function () {
+      state.saving = false;
+      updateStatus();
+      if (getSheet(name).dirty) scheduleSave(name);
+    });
+  }
+
+  /* ==================== 快照同步（homeData.js / usersData.js） ==================== */
+  // 覆盖工作簿内全部工作表，保证可见权限之外的表也不会被快照丢掉
+  function homeSnapshotText() {
+    var wb = state.homeWb;
+    if (!wb) return null;
+    var sheets = [];
+    wb.SheetNames.forEach(function (n) {
+      var aoa = aoaOf(wb.Sheets[n]).map(function (row) {
+        return (row || []).map(cellText);
+      });
+      while (aoa.length && aoa[aoa.length - 1].every(function (x) { return String(x).trim() === ''; })) aoa.pop();
+      var merges = (wb.Sheets[n]['!merges'] || []).map(function (m) {
+        return { s: { r: m.s.r, c: m.s.c }, e: { r: m.e.r, c: m.e.c } };
+      });
+      sheets.push({ name: n, aoa: aoa, merges: merges });
+    });
+    var data = { generatedAt: nowText(), sheets: sheets };
+    return '/* 自动生成：homeData.xlsx 数据快照。仅在 file:// 双击打开时作为兜底；改完 Excel 请重新生成本文件或用 start-login.bat 起本地服务。 */\n' +
+      'window.__HOME_DATA__ = ' + JSON.stringify(data) + ';\n';
+  }
+
+  function usersSnapshotText() {
+    var sh = getSheet(CONFIG.userSheetLabel);
+    var headers = (sh.headers && sh.headers[0] && sh.headers[0].length)
+      ? sh.headers[0] : ['用户名', '用户密码', '权限', '姓名', '备注'];
+    var users = [];
+    sh.records.forEach(function (rec) {
+      var obj = {};
+      headers.forEach(function (h, i) {
+        obj[String(h || ('列' + (i + 1)))] = isBlank(rec[i]) ? '' : String(cellText(rec[i]));
+      });
+      if (String(obj[String(headers[0])] || '').trim() !== '') users.push(obj);
+    });
+    var data = {
+      generatedAt: nowText(),
+      note: 'usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后需重新生成。',
+      users: users,
+      perm: { sheetName: state.userSheetName || '用户权限', tables: state.permTables || [] }
+    };
+    return '/* 自动生成，源数据：data/usersData.xlsx，请勿手工编辑 */\nwindow.__USERS_DATA__ = ' +
+      JSON.stringify(data, null, 2) + ';\n';
+  }
+
+  function saveSnapshot(name) {
+    var isUser = (name === CONFIG.userSheetLabel);
+    var text = isUser ? usersSnapshotText() : homeSnapshotText();
+    if (!text) return Promise.resolve(false);
+    var dir = pathOf(name).replace(/[^\/]*$/, '');                 // 与 xlsx 同目录
+    var rel = dir + (isUser ? 'usersData.js' : 'homeData.js');
+    var body = JSON.stringify({ path: rel, data: toBase64(new TextEncoder().encode(text)) });
+    return postJson(body).then(function () {
+      state.snapErr = '';
+      return true;
+    }).catch(function (err) {
+      var msg = err && err.message ? err.message : '未知错误';
+      state.snapErr = msg;
+      toast('Excel 已保存，但快照 ' + (isUser ? 'usersData.js' : 'homeData.js') + ' 更新失败：' + msg, true);
+      updateStatus();
+      return false;
+    });
+  }
+
+  // 状态栏刷新（不重绘表格，避免打断正在进行的单元格编辑）
+  function updateStatus() {
+    var name = state.current;
+    var el = $('status');
+    if (!name || !el) return;
+    var sh = getSheet(name);
+    var p = permOf(name);
+    var writable = canWriteFile();
+    var btn = $('btnRetry');
+    if (!sh.cols || !sh.headerRows) {
+      el.textContent = '';
+      el.className = 'status';
+      if (btn) btn.hidden = true;
+      return;
+    }
+    var err = state.saveErr[name];
+    var tips = [];
+    tips.push('共 ' + sh.records.length + ' 条记录' + (state.keyword ? '，筛选后 ' + filteredRecords(sh).length + ' 条' : ''));
+    tips.push('每页 ' + state.pageSize + ' 条');
+    if (sh.dirty) {
+      if (err) tips.push('未保存：' + err);
+      else tips.push(state.saving ? '正在自动保存…' : '已修改（待自动保存）');
+    } else if (state.savedAt[name]) {
+      tips.push('已保存 ' + formatTs(state.savedAt[name]).slice(11) + '（原文件已覆盖）');
+    }
+    if (state.snapErr) tips.push('快照更新失败：' + state.snapErr);
+    if (p.mode === 'r') tips.push('只读模式：不可增删改');
+    else if (!writable) tips.push('本地文件 / 快照打开：仅可查看，不能写回');
+    el.textContent = tips.join(' ｜ ');
+    el.className = 'status' + ((err && sh.dirty) ? ' error' : '');
+    if (btn) btn.hidden = !(sh.dirty && err && writable);
+  }
+
+  /* ==================== 视图切换与事件 ==================== */
+  function setView(name) {
+    if (name) {
+      if (!permOf(name).visible) { toast('无权访问「' + name + '」', true); return; }
+      state.current = name;
+      state.page = 1;
+      state.keyword = '';
+      $('search').value = '';
+      $('viewHome').hidden = true;
+      $('viewData').hidden = false;
+      renderData();
+    } else {
+      state.current = '';
+      $('viewData').hidden = true;
+      $('viewHome').hidden = false;
+      renderHome();
+    }
+    renderMenu();
+    $('sidebar').classList.remove('open');
+    window.scrollTo(0, 0);
+  }
+
+  function bindEvents() {
+    $('menu').addEventListener('click', function (e) {
+      var item = e.target.closest ? e.target.closest('.nav-item') : null;
+      if (!item) return;
+      setView(item.getAttribute('data-target') || '');
+    });
+
+    $('cardGrid').addEventListener('click', function (e) {
+      var card = e.target.closest ? e.target.closest('.card') : null;
+      if (!card) return;
+      setView(card.getAttribute('data-target'));
+    });
+
+    $('navToggle').addEventListener('click', function () {
+      $('sidebar').classList.toggle('open');
+    });
+
+    /* ===== 桌面端功能菜单收缩（窄条模式，状态本地记忆） ===== */
+    var NAV_KEY = 'qbd.navCollapsed';
+    function applyNavCollapsed(v) {
+      document.documentElement.classList[v ? 'add' : 'remove']('nav-collapsed');
+      var btn = $('navCollapse');
+      if (btn) {
+        btn.title = v ? '展开菜单' : '收起菜单';
+        btn.setAttribute('aria-label', btn.title);
+        btn.setAttribute('aria-expanded', v ? 'false' : 'true');
+      }
+    }
+    var navCollapsed = false;
+    try { navCollapsed = localStorage.getItem(NAV_KEY) === '1'; } catch (e) {}
+    applyNavCollapsed(navCollapsed);
+    if ($('navCollapse')) {
+      $('navCollapse').addEventListener('click', function () {
+        var next = !document.documentElement.classList.contains('nav-collapsed');
+        applyNavCollapsed(next);
+        try { localStorage.setItem(NAV_KEY, next ? '1' : '0'); } catch (e) {}
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var sb = $('sidebar');
+      if (!sb.classList.contains('open')) return;
+      if (sb.contains(e.target) || e.target === $('navToggle')) return;
+      sb.classList.remove('open');
+    });
+
+    var searchTimer = null;
+    $('search').addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      var v = this.value;
+      searchTimer = setTimeout(function () {
+        state.keyword = v;
+        state.page = 1;
+        renderData();
+      }, 200);
+    });
+
+    $('pageSize').addEventListener('change', function () {
+      state.pageSize = parseInt(this.value, 10) || CONFIG.defaultPageSize;
+      state.page = 1;
+      renderData();
+    });
+
+    $('pager').addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('button[data-pg]') : null;
+      if (!btn) return;
+      var act = btn.getAttribute('data-pg');
+      var sh = getSheet(state.current);
+      var pages = Math.max(1, Math.ceil(filteredRecords(sh).length / state.pageSize));
+      if (act === 'first') state.page = 1;
+      else if (act === 'prev') state.page = Math.max(1, state.page - 1);
+      else if (act === 'next') state.page = Math.min(pages, state.page + 1);
+      else if (act === 'last') state.page = pages;
+      renderData();
+    });
+
+    $('tableWrap').addEventListener('click', function (e) {
+      var del = e.target.closest ? e.target.closest('button[data-del]') : null;
+      if (del) {
+        delRow(parseInt(del.getAttribute('data-del'), 10));
+        return;
+      }
+      var td = e.target.closest ? e.target.closest('td[data-c]') : null;
+      if (td) beginEdit(td);
+    });
+
+    $('btnAdd').addEventListener('click', addRow);
+    $('btnRevert').addEventListener('click', revertEdits);
+    if ($('btnRetry')) $('btnRetry').addEventListener('click', retrySaveNow);
+    if ($('btnRestore')) $('btnRestore').addEventListener('click', restoreLast);
+
+    // 关闭页面前把待保存内容用 sendBeacon 发出去（fetch 会随页面销毁被取消）
+    window.addEventListener('beforeunload', function (e) {
+      if (state.leaving) return;
+      var pending = Object.keys(state.cache).some(function (n) { return state.cache[n].dirty; });
+      if (!pending) return;
+      beaconSaves();
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    });
+
+    // 本地文件模式提示条
+    if ($('btnPickXlsx')) $('btnPickXlsx').addEventListener('click', function () { $('fileXlsx').click(); });
+    if ($('fileXlsx')) $('fileXlsx').addEventListener('change', onPickXlsx);
+    if ($('btnHideNotice')) $('btnHideNotice').addEventListener('click', function () { $('modeNotice').hidden = true; });
+
+    $('btnLogout').addEventListener('click', function (e) {
+      e.preventDefault();
+      clearInterval(state.idleTimer);
+      state.leaving = true;
+      flushSaves();
+      clearSession();
+      location.replace(CONFIG.loginPage);
+    });
+
+    window.addEventListener('resize', function () {
+      if (!$('viewData').hidden) stickyHead();
+    });
+  }
+
+  /* ==================== 启动 ==================== */
+  function fatal(msg, sub) {
+    $('viewHome').hidden = true;
+    $('viewData').hidden = false;
+    $('sheetTitle').textContent = '无法加载数据';
+    $('modeBadge').textContent = '—';
+    $('viewData').querySelector('.view-tools').style.display = 'none';
+    $('tableWrap').innerHTML = '<div class="empty"><strong>' + esc(msg) + '</strong>' + (sub || '') + '</div>';
+    $('pager').innerHTML = '';
+  }
+
+  function boot() {
+    AUTH = readAuth();
+    if (!AUTH.user || !AUTH.ts) { goLogin('auth'); return; }
+    // 登录总时长不再限制，仅按「5 分钟无鼠标/键盘操作」判定是否退回登录页
+
+    // file:// 双击打开：不再直接报错，降级为「本地文件模式」（读 data/homeData.js 快照）
+    state.fileMode = (location.protocol === 'file:');
+
+    $('userName').textContent = AUTH.user;
+    $('loginTime').textContent = formatTs(AUTH.ts);
+    document.title = AUTH.user + ' · 秦巴药都数据平台';
+    startIdleWatch();
+
+    // 分页下拉
+    var opts = CONFIG.pageSizes.map(function (n) {
+      return '<option value="' + n + '"' + (n === CONFIG.defaultPageSize ? ' selected' : '') + '>' + n + ' 条/页</option>';
+    }).join('');
+    $('pageSize').innerHTML = opts;
+
+    bindEvents();
+    if (state.fileMode) { $('modeNotice').hidden = false; }
+
+    // 1. 用户与权限
+    var userTask;
+    if (state.fileMode) {
+      userTask = Promise.resolve().then(function () {
+        if (!window.__USERS_DATA__) throw new Error('本地文件模式下缺少 data/usersData.js 快照');
+        applyUsers(parseUsersFromSnapshot());
+      });
+    } else {
+      userTask = readWorkbook(CONFIG.usersData)
+        .catch(function () { raiseSnapshot(); return null; })
+        .then(function (wb) {
+          if (!wb) {
+            var snap = parseUsersFromSnapshot();
+            applyUsers(snap);
+            return;
+          }
+          state.usersWb = wb;
+          applyUsers(parseUsers(wb));
+        });
+    }
+
+    // 2. 业务数据
+    var dataTask;
+    if (state.fileMode) {
+      dataTask = Promise.resolve().then(function () {
+        if (window.__HOME_DATA__) {
+          state.homeWb = wbFromSnapshot(window.__HOME_DATA__);
+          state.dataSource = 'snapshot';
+        }
+      });
+    } else {
+      dataTask = readWorkbook(CONFIG.homeData).then(function (wb) {
+        state.homeWb = wb;
+        state.dataSource = 'http';
+      }).catch(function (err) {
+        throw new Error('读取 ' + CONFIG.homeData + ' 失败：' + (err && err.message ? err.message : '未知错误'));
+      });
+    }
+
+    Promise.all([userTask, dataTask]).then(function () {
+      // 校验账号
+      var rec = null;
+      for (var i = 0; i < state.users.length; i++) {
+        if (String(state.users[i][0] || '').trim().toLowerCase() === AUTH.user.toLowerCase()) { rec = state.users[i]; break; }
+      }
+      if (!rec) {
+        fatal('账号不存在或已被删除', '用户「' + esc(AUTH.user) + '」不在 <code>usersData.xlsx</code> 的用户表中。<br>3 秒后返回登录页。');
+        setTimeout(function () { goLogin('auth'); }, 3000);
+        return;
+      }
+      state.role = String(rec[2] || '').trim() || ROLE_G;
+      state.realName = String(rec[3] || '').trim() || AUTH.user;
+      state.perm = buildPerm(state.role);
+
+      $('roleName').textContent = state.role;
+      state.userOriginal = { users: state.users.map(function (r) { return r.slice(); }), headers: state.userHeaders.slice() };
+
+      renderMenu();
+
+      // 本地文件模式且没有快照：给出选择文件入口
+      if (!state.homeWb) {
+        setView('');
+        $('cardGrid').innerHTML = '<div class="empty"><strong>没有可用的数据</strong>' +
+          '本地文件模式（file://）下未找到数据快照 <code>data/homeData.js</code>。<br>' +
+          '请点页面上方的「手动选择 homeData.xlsx」，或双击 output 目录的 <code>start-login.bat</code> 用本地服务登录。</div>';
+        return;
+      }
+
+      if (!visibleTableNames().length) {
+        renderHome();
+        toast('该账号暂无可访问的数据表', true);
+        return;
+      }
+      setView('');
+    }).catch(function (err) {
+      fatal('数据加载失败', esc(err && err.message ? err.message : '未知错误') +
+        '<br>请确认 <code>data/homeData.xlsx</code>、<code>data/usersData.xlsx</code> 存在；' +
+        '双击打开（file://）时请确认 <code>data/homeData.js</code>、<code>data/usersData.js</code> 快照存在。');
+    });
+  }
+
+  // 把 data/homeData.js 快照转成与 XLSX.read 同构的 workbook
+  function wbFromSnapshot(snap) {
+    var wb = { SheetNames: [], Sheets: {}, Props: {} };
+    (snap.sheets || []).forEach(function (s) {
+      var aoa = (s.aoa && s.aoa.length) ? s.aoa : [[]];
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      if (s.merges && s.merges.length) ws['!merges'] = s.merges;
+      wb.SheetNames.push(s.name);
+      wb.Sheets[s.name] = ws;
+    });
+    return wb;
+  }
+
+  // 本地文件模式：手动选择 homeData.xlsx
+  function onPickXlsx(e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var wb = XLSX.read(new Uint8Array(fr.result), { type: 'array', cellDates: true });
+        state.homeWb = wb;
+        state.dataSource = 'local-file';
+        state.cache = {};
+        state.fileMode = false;
+        state.xlsxPath.home = '';       // 手选文件的真实路径浏览器不可见，无法自动回写
+        $('modeNotice').hidden = true;
+        renderMenu();
+        if (!visibleTableNames().length) { renderHome(); toast('该账号暂无可访问的数据表', true); return; }
+        setView('');
+        toast('已载入 ' + f.name + '（只读预览；如需改动自动写回，请用 start-login.bat 启动服务后访问）');
+      } catch (err) {
+        toast('文件解析失败：' + (err && err.message ? err.message : '未知错误'), true);
+      }
+    };
+    fr.onerror = function () { toast('文件读取失败', true); };
+    fr.readAsArrayBuffer(f);
+    e.target.value = '';
+  }
+
+  function raiseSnapshot() {
+    if (!window.__USERS_DATA__) throw new Error('usersData.xlsx 读取失败，且无内置快照');
+  }
+
+  function applyUsers(parsed) {
+    state.users = parsed.users;
+    state.userHeaders = parsed.headers;
+    state.userSheetName = parsed.sheetName;
+    state.permTables = parsed.tables;
+    delete state.cache[CONFIG.userSheetLabel];
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

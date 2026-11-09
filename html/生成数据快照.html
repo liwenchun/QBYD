@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生成数据快照 · 秦巴药都数据平台</title>
+<style>
+  :root{
+    --green-700:#1f5c3a;--green-600:#2a7249;--green-500:#2f7a4d;
+    --ink:#1c2a22;--ink-2:#4a5b52;--line:#e2e8e4;--bg:#f4f7f5;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;padding:28px 18px 60px;background:var(--bg);color:var(--ink);
+    font:14px/1.7 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  }
+  .wrap{max-width:720px;margin:0 auto;background:#fff;border:1px solid var(--line);
+    border-radius:14px;padding:24px 22px;box-shadow:0 6px 24px rgba(28,42,34,.06);}
+  h1{margin:0 0 4px;font-size:19px;color:var(--green-700);}
+  .sub{color:var(--ink-2);font-size:13px;margin-bottom:18px;}
+  ol{margin:0 0 18px;padding-left:20px;color:var(--ink-2);}
+  ol li{margin-bottom:4px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  input[type=file]{
+    flex:1;min-width:220px;border:1px dashed #c8d6cd;border-radius:9px;padding:9px 11px;background:#fafcfb;
+  }
+  button{
+    border:0;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;
+    background:var(--green-600);color:#fff;font-weight:600;
+  }
+  button:hover{background:var(--green-700);}
+  button:disabled{background:#b9c7bf;cursor:not-allowed;}
+  #log{
+    margin:0;padding:12px 14px;background:#0f1a14;color:#9fe6b8;border-radius:10px;
+    font:12.5px/1.7 Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-all;min-height:44px;
+  }
+  .tip{margin-top:16px;padding:10px 12px;border-radius:9px;background:#fff7e6;
+    border:1px solid #f2d69a;color:#8a5a00;font-size:12.5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>生成数据快照 homeData.js</h1>
+  <div class="sub">用于「双击 html 打开」（file:// 协议）时的数据兜底，让页面不必依赖本地服务也能看到最新数据。</div>
+
+  <ol>
+    <li>选择 <code>output\data\homeData.xlsx</code>（不要选 usersData）。</li>
+    <li>点「生成并下载」，浏览器会下载 <code>homeData.js</code>。</li>
+    <li>用它覆盖 <code>output\data\homeData.js</code>，下次双击 login.html 登录即可看到新数据。</li>
+  </ol>
+
+  <div class="row">
+    <input type="file" id="f" accept=".xlsx,.xls">
+    <button id="gen" disabled>生成并下载</button>
+  </div>
+
+  <pre id="log">等待选择文件…</pre>
+
+  <div class="tip">提示：日常使用建议双击 <code>output\start-login.bat</code>，它直接读 xlsx，改完 Excel 刷新即可，不需要生成快照。</div>
+</div>
+
+<script src="./js/xlsx.full.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function nowText() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+      pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function cellText(v) {
+    if (v === null || v === undefined) return '';
+    if (v instanceof Date) return v.getFullYear() + '-' + pad2(v.getMonth() + 1) + '-' + pad2(v.getDate());
+    return v;
+  }
+
+  $('f').addEventListener('change', function () {
+    $('gen').disabled = !this.files || !this.files[0];
+    if (this.files && this.files[0]) $('log').textContent = '已选择：' + this.files[0].name + '（点「生成并下载」）';
+  });
+
+  $('gen').addEventListener('click', function () {
+    var file = $('f').files && $('f').files[0];
+    if (!file) { $('log').textContent = '请先选择 homeData.xlsx'; return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var wb = XLSX.read(new Uint8Array(fr.result), { type: 'array', cellDates: true });
+        var sheets = [];
+        var lines = [];
+        wb.SheetNames.forEach(function (name) {
+          var ws = wb.Sheets[name];
+          var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true }) || [];
+          aoa = aoa.map(function (row) { return row.map(cellText); });
+          while (aoa.length && aoa[aoa.length - 1].every(function (x) { return String(x).trim() === ''; })) aoa.pop();
+          var merges = (ws['!merges'] || []).map(function (m) {
+            return { s: { r: m.s.r, c: m.s.c }, e: { r: m.e.r, c: m.e.c } };
+          });
+          sheets.push({ name: name, aoa: aoa, merges: merges });
+          lines.push('  · ' + name + '：' + Math.max(aoa.length - 1, 0) + ' 条数据行，合并区 ' + merges.length + ' 处');
+        });
+
+        var data = { generatedAt: nowText(), sheets: sheets };
+        var js = '/* 自动生成：homeData.xlsx 数据快照。仅在 file:// 双击打开时作为兜底；改完 Excel 请重新生成本文件或用 start-login.bat 起本地服务。 */\n' +
+          'window.__HOME_DATA__ = ' + JSON.stringify(data) + ';\n';
+
+        var blob = new Blob([js], { type: 'application/javascript;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'homeData.js';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+
+        $('log').textContent = '生成成功，已开始下载 homeData.js（' + (js.length / 1024).toFixed(1) + ' KB）\n' +
+          lines.join('\n') + '\n\n请把它复制到 output\\data\\ 覆盖原 homeData.js。';
+      } catch (err) {
+        $('log').textContent = '生成失败：' + (err && err.message ? err.message : err);
+      }
+    };
+    fr.onerror = function () { $('log').textContent = '文件读取失败，请重试'; };
+    fr.readAsArrayBuffer(file);
+  });
+})();
+</script>
+</body>
+</html>
