@@ -1,7 +1,7 @@
 /* 自动生成，源数据：data/usersData.xlsx，请勿手工编辑 */
 window.__USERS_DATA__ = {
-  "generatedAt": "2026-11-10 15:51",
-  "note": "usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后双击 start-login.bat 会自动重建。",
+  "generatedAt": "2026-11-10 16:18",
+  "note": "usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后需重新生成。",
   "users": [
     {
       "用户名": "user",
@@ -29,6 +29,13 @@ window.__USERS_DATA__ = {
       "用户密码": "",
       "权限": "超级管理用户",
       "姓名": "李文春",
+      "备注": ""
+    },
+    {
+      "用户名": "guest",
+      "用户密码": "123456",
+      "权限": "一般用户",
+      "姓名": "游客",
       "备注": ""
     }
   ],
