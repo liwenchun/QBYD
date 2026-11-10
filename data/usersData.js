@@ -1,7 +1,7 @@
 /* 自动生成，源数据：data/usersData.xlsx，请勿手工编辑 */
 window.__USERS_DATA__ = {
-  "generatedAt": "2026-11-10 10:18",
-  "note": "usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后需重新生成。",
+  "generatedAt": "2026-11-10 15:51",
+  "note": "usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后双击 start-login.bat 会自动重建。",
   "users": [
     {
       "用户名": "user",
