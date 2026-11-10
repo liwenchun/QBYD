@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#12301f">
-<meta name="description" content="四川秦巴药都医药有限公司中药材溯源信息查询：按溯源码查询批次对应的品种、种植地块、采收日期、加工批次与质检报告。">
+<meta name="description" content="四川秦巴药都医药有限公司中药材溯源信息查询：按溯源码查询批次对应的品种、采收日期、加工批次与质检报告。">
 <title>中药材溯源信息 · 秦巴药都</title>
 <style>
   :root{
@@ -114,7 +114,7 @@
 
   /* 桌面表格 */
   .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:1180px;}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:1080px;}
   thead th{
     position:sticky;top:0;z-index:2;
     background:#eef4f0;color:var(--green-900);
@@ -260,7 +260,7 @@
   <div class="wrap">
     <p class="eyebrow">Traceability</p>
     <h1 class="serif">中药材溯源信息</h1>
-    <p class="lead">按溯源码查询对应批次的品种、种植地块、采收日期、加工批次与质检报告，点击「见溯源」可查看该批次的完整流转详情。</p>
+    <p class="lead">按溯源码查询对应批次的品种、采收日期、加工批次与质检报告，点击「见溯源」可查看该批次的完整流转详情。</p>
     <div class="meta">
       <span><i class="dot"></i><span id="metaCount">数据加载中…</span></span>
       <span id="metaSource"></span>
@@ -319,6 +319,8 @@
     xlsxUrl: '../data/homeData.xlsx',
     sheetName: '溯源明细',
     cols: ['序号', '溯源码', '品种', '名称', '种植地块', '采收日期', '加工批次', '质检报告编号', '见详细', '备注'],
+    // 不展示的列：仍参与解析（便于日后恢复），但表头、单元格与手机卡片均不渲染
+    hideCols: ['种植地块'],
     keyCol: '溯源码',
     linkCol: '见详细',
     linkText: '见溯源',        // 历史兼容字段：现规则为「见详细」列内容非空即加链接
@@ -516,21 +518,33 @@
       'target="_blank" rel="noopener">' + esc(text) + '<span class="arrow">›</span></a>';
   }
 
+  /* 需隐藏的列（CFG.hideCols）在表格与手机卡片中均不输出 */
+  function visibleCols() {
+    var hide = CFG.hideCols || [];
+    return CFG.cols.filter(function (c) { return hide.indexOf(c) < 0; });
+  }
+
+  // 各列对应的样式类
+  var COL_CLASS = {
+    '序号': 'c-idx',
+    '溯源码': 'c-code',
+    '加工批次': 'c-batch',
+    '质检报告编号': 'c-report',
+    '见详细': 'c-link',
+    '备注': 'c-note'
+  };
+
+  function cellHTML(row, name) {
+    var cls = COL_CLASS[name] || '';
+    var inner = (name === CFG.linkCol) ? linkHTML(row) : esc(row[name]);
+    return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + inner + '</td>';
+  }
+
   function renderTable(list) {
-    var head = CFG.cols.map(function (c) { return '<th>' + esc(TITLES[c] || c) + '</th>'; }).join('');
+    var cols = visibleCols();
+    var head = cols.map(function (c) { return '<th>' + esc(TITLES[c] || c) + '</th>'; }).join('');
     var body = list.map(function (row) {
-      return '<tr>' +
-        '<td class="c-idx">' + esc(row['序号']) + '</td>' +
-        '<td class="c-code">' + esc(row['溯源码']) + '</td>' +
-        '<td>' + esc(row['品种']) + '</td>' +
-        '<td>' + esc(row['名称']) + '</td>' +
-        '<td>' + esc(row['种植地块']) + '</td>' +
-        '<td>' + esc(row['采收日期']) + '</td>' +
-        '<td class="c-batch">' + esc(row['加工批次']) + '</td>' +
-        '<td class="c-report">' + esc(row['质检报告编号']) + '</td>' +
-        '<td class="c-link">' + linkHTML(row) + '</td>' +
-        '<td class="c-note">' + esc(row['备注']) + '</td>' +
-        '</tr>';
+      return '<tr>' + cols.map(function (c) { return cellHTML(row, c); }).join('') + '</tr>';
     }).join('');
     $('tableHost').innerHTML = '<table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>';
   }
@@ -538,6 +552,7 @@
   function renderCards(list) {
     var html = list.map(function (row) {
       var tag = [row['品种'], row['名称']].filter(function (x) { return x; }).join(' · ');
+      var hide = CFG.hideCols || [];
       var kv = [
         ['溯源码', row['溯源码']],
         ['种植地块', row['种植地块']],
@@ -545,7 +560,7 @@
         ['加工批次', row['加工批次']],
         ['质检报告', row['质检报告编号']],
         ['备注', row['备注']]
-      ].filter(function (p) { return p[1]; }).map(function (p) {
+      ].filter(function (p) { return p[1] && hide.indexOf(p[0]) < 0; }).map(function (p) {
         return '<dt>' + esc(TITLES[p[0]] || p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>';
       }).join('');
       return '<article class="tcard">' +
