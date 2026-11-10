@@ -1416,8 +1416,14 @@
     $('sheetTitle').textContent = state.current;
     $('modeBadge').textContent = writable ? MODE_TEXT[p.mode] : '仅查看 · 本地文件模式';
     $('modeBadge').title = writable ? '' : READONLY_SOURCE_MSG;
+    // 一般用户是纯只读角色：编辑类按钮整块不显示（不是灰掉），避免误以为可点
+    var isGeneral = (state.role === ROLE_G);
+    $('btnAdd').hidden = isGeneral;
+    $('btnRevert').hidden = isGeneral;
+    $('btnRestore').hidden = isGeneral;
     $('btnAdd').disabled = !canWrite;
     $('btnRevert').disabled = !canWrite;
+    if ($('btnRestore')) $('btnRestore').disabled = !writable;
 
     // 空表（无表头）
     if (!sh.cols || !sh.headerRows) {
