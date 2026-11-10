@@ -21,6 +21,10 @@ if not exist "%~dp0data\homeData.xlsx" (
   echo.
 )
 
+echo   正在同步数据快照（data 目录里的 xlsx -^> js）...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0server.ps1" -SyncOnly
+echo.
+
 echo   正在检测可用端口...
 set "PORT="
 for /f "usebackq delims=" %%p in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$ok=0; foreach($pt in 8000,8010,8020,8080,8090,8100,8110,8120,8130,8140,8150){ try { $l=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,$pt); $l.Start(); $l.Stop(); $ok=$pt; break } catch {} }; Write-Output $ok"`) do set "PORT=%%p"
@@ -49,7 +53,7 @@ echo.
 
 start "" /min cmd /c "timeout /t 3 /nobreak >nul & start "" http://127.0.0.1:%PORT%/html/login.html"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0server.ps1" -Port %PORT%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0server.ps1" -Port %PORT% -NoSync
 
 echo.
 echo   服务已停止。
