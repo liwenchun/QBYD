@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12301f">
+<meta name="description" content="四川秦巴药都医药有限公司中药材溯源信息查询：按溯源码查询批次对应的品种、种植地块、采收日期、加工批次与质检报告。">
+<title>中药材溯源信息 · 秦巴药都</title>
+<style>
+  :root{
+    --green-900:#12301f;
+    --green-800:#1a3d29;
+    --green-700:#1f5236;
+    --green-500:#2f7a4d;
+    --green-100:#e8f0ea;
+    --gold:#b8873b;
+    --gold-light:#d9b273;
+    --cream:#f7f5ef;
+    --white:#ffffff;
+    --ink:#1c2b23;
+    --muted:#6b7a72;
+    --line:#e2e6e2;
+    --radius:14px;
+    --shadow:0 10px 30px rgba(18,48,31,.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",sans-serif;
+    color:var(--ink);
+    background:var(--cream);
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none;}
+  img{display:block;max-width:100%;}
+  button{font-family:inherit;cursor:pointer;}
+  .serif{font-family:"Songti SC","STSong","SimSun","Source Han Serif SC",serif;}
+  code{font-family:Consolas,"Courier New",monospace;font-size:.92em;background:rgba(18,48,31,.06);padding:1px 5px;border-radius:4px;}
+
+  /* ================= 顶栏 ================= */
+  .tnav{
+    position:sticky;top:0;z-index:60;
+    background:linear-gradient(90deg,var(--green-900),var(--green-700) 62%,var(--green-500));
+    color:#fff;
+    height:62px;
+    display:flex;align-items:center;
+    box-shadow:0 2px 16px rgba(18,48,31,.18);
+  }
+  .tnav-inner{
+    width:100%;max-width:1360px;margin:0 auto;padding:0 20px;
+    display:flex;align-items:center;gap:16px;
+  }
+  .tbrand{display:flex;align-items:baseline;gap:10px;min-width:0;white-space:nowrap;}
+  .tbrand .mark{
+    width:28px;height:28px;border-radius:8px;flex:none;
+    background:rgba(255,255,255,.16);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:15px;font-weight:700;letter-spacing:0;
+    transform:translateY(4px);
+  }
+  .tbrand .name{font-size:17px;font-weight:700;letter-spacing:1px;}
+  .tbrand .sub{font-size:12px;opacity:.8;overflow:hidden;text-overflow:ellipsis;}
+  .tlinks{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .tlinks a{
+    font-size:13.5px;padding:7px 13px;border-radius:999px;
+    color:rgba(255,255,255,.9);transition:background .2s,color .2s;
+  }
+  .tlinks a:hover{background:rgba(255,255,255,.14);color:#fff;}
+  .tlinks a.tcta{border:1px solid rgba(217,178,115,.65);color:var(--gold-light);}
+  .tlinks a.tcta:hover{background:var(--gold);border-color:var(--gold);color:#2b1c06;}
+
+  /* ================= 页头 ================= */
+  .thead{
+    background:
+      radial-gradient(1100px 340px at 12% -30%,rgba(47,122,77,.16),transparent 62%),
+      linear-gradient(180deg,#fbfaf6,var(--cream));
+    border-bottom:1px solid var(--line);
+    padding:34px 0 26px;
+  }
+  .wrap{width:100%;max-width:1360px;margin:0 auto;padding:0 20px;}
+  .eyebrow{
+    font-size:11.5px;letter-spacing:.22em;color:var(--gold);font-weight:600;
+    text-transform:uppercase;margin-bottom:8px;
+  }
+  .thead h1{font-size:27px;line-height:1.35;letter-spacing:1px;color:var(--green-900);font-weight:600;}
+  .thead .lead{margin-top:8px;font-size:14px;color:var(--muted);max-width:760px;}
+  .meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:var(--muted);}
+  .meta .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green-500);vertical-align:middle;margin-right:6px;}
+
+  /* ================= 提示条 ================= */
+  .notice{
+    margin:18px 0 0;padding:10px 14px;border-radius:10px;
+    font-size:12.5px;line-height:1.75;
+    background:#fdf8ec;border:1px solid #f0e2c6;color:#7a5a1e;
+  }
+  .notice b{font-weight:600;}
+
+  /* ================= 主体 ================= */
+  .main{padding:22px 0 40px;}
+  .card{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .card-head{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:14px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#fcfdfc,#f7faf8);
+  }
+  .card-head .title{font-size:14.5px;font-weight:600;color:var(--green-800);}
+  .card-head .count{font-size:12.5px;color:var(--muted);}
+  .card-head .spacer{margin-left:auto;}
+
+  /* 桌面表格 */
+  .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:1180px;}
+  thead th{
+    position:sticky;top:0;z-index:2;
+    background:#eef4f0;color:var(--green-900);
+    font-weight:600;font-size:13px;letter-spacing:.4px;
+    text-align:left;padding:11px 12px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:11px 12px;border-bottom:1px solid #eef1ee;
+    vertical-align:top;word-break:break-word;
+  }
+  tbody tr:nth-child(even) td{background:#fbfcfb;}
+  tbody tr:hover td{background:#f4f9f5;}
+  tbody tr:last-child td{border-bottom:none;}
+  td.c-idx{color:var(--muted);text-align:center;width:56px;}
+  td.c-code{font-weight:600;color:var(--green-700);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  td.c-batch,td.c-report{white-space:nowrap;font-variant-numeric:tabular-nums;}
+  td.c-link{white-space:nowrap;}
+  td.c-note{color:var(--muted);}
+  .trace-link{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:4px 10px;border-radius:999px;
+    background:var(--green-100);color:var(--green-700);
+    font-size:12.5px;font-weight:600;white-space:nowrap;
+    border:1px solid #d6e7db;transition:background .18s,color .18s,border-color .18s;
+  }
+  .trace-link:hover{background:var(--green-700);color:#fff;border-color:var(--green-700);}
+  .trace-link.checking{opacity:.6;pointer-events:none;}
+  .trace-link .arrow{font-size:11px;opacity:.8;}
+  .plain{color:var(--muted);}
+
+  /* 手机卡片 */
+  .cards{display:none;padding:12px;}
+  .tcard{
+    border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;margin-bottom:10px;background:#fff;
+  }
+  .tcard:last-child{margin-bottom:0;}
+  .tcard-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .tcard-top .code{
+    font-size:14.5px;font-weight:700;color:var(--green-800);
+    font-variant-numeric:tabular-nums;letter-spacing:.4px;
+  }
+  .tcard-top .tag{
+    font-size:11.5px;padding:2px 8px;border-radius:999px;
+    background:var(--green-100);color:var(--green-700);border:1px solid #d6e7db;
+  }
+  .tcard-top .idx{margin-left:auto;font-size:11.5px;color:var(--muted);}
+  .kv{display:grid;grid-template-columns:78px 1fr;gap:6px 10px;font-size:13px;}
+  .kv dt{color:var(--muted);font-size:12.5px;}
+  .kv dd{color:var(--ink);word-break:break-word;}
+  .tcard-foot{margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:10px;}
+  .tcard-foot .trace-link{padding:7px 14px;font-size:13px;}
+
+  /* ================= 分页 ================= */
+  .pager{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:13px 18px;border-top:1px solid var(--line);background:#fcfdfc;
+  }
+  .pager[hidden]{display:none;}
+  .pager .sum{font-size:12.5px;color:var(--muted);margin-right:auto;}
+  .pbtn{
+    min-width:34px;height:32px;padding:0 11px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    font-size:13px;line-height:30px;text-align:center;
+    transition:background .18s,border-color .18s,color .18s;
+  }
+  .pbtn:hover:not(:disabled){border-color:var(--green-500);color:var(--green-700);}
+  .pbtn[disabled]{opacity:.45;cursor:not-allowed;}
+  .pbtn.cur{background:var(--green-700);border-color:var(--green-700);color:#fff;font-weight:600;}
+  .pbtn.ellipsis{border:none;background:transparent;pointer-events:none;color:var(--muted);}
+
+  .empty{padding:48px 20px;text-align:center;color:var(--muted);font-size:13.5px;}
+  .tip{margin-top:14px;font-size:12.5px;color:var(--muted);line-height:1.8;}
+
+  /* ================= 页脚 ================= */
+  .tfoot{
+    border-top:1px solid var(--line);background:#fbfaf6;
+    padding:18px 0;font-size:12.5px;color:var(--muted);
+  }
+  .tfoot .wrap{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
+  .tfoot .sep{opacity:.5;}
+
+  /* ================= Toast ================= */
+  #toast{
+    position:fixed;left:50%;bottom:34px;transform:translate(-50%,16px);
+    max-width:min(560px,calc(100vw - 32px));
+    padding:11px 16px;border-radius:10px;
+    background:rgba(18,48,31,.94);color:#fff;font-size:13px;line-height:1.6;
+    box-shadow:0 12px 28px rgba(0,0,0,.22);
+    opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:200;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* ================= 响应式：手机 / 平板 ================= */
+  @media (max-width:860px){
+    .tnav{height:56px;}
+    .tnav-inner{padding:0 14px;gap:10px;}
+    .tbrand .name{font-size:15.5px;}
+    .tbrand .sub{display:none;}
+    .tlinks a{padding:6px 10px;font-size:12.5px;}
+    .thead{padding:24px 0 20px;}
+    .thead h1{font-size:21px;}
+    .thead .lead{font-size:13px;}
+    .wrap{padding:0 14px;}
+    .main{padding:16px 0 30px;}
+    .notice{font-size:12px;margin-top:14px;}
+    .card-head{padding:12px 14px;}
+    .table-scroll{display:none;}
+    .cards{display:block;padding:10px;}
+    .pager{padding:11px 12px;gap:6px;}
+    .pager .sum{width:100%;margin:0 0 4px;}
+    .pbtn{min-width:32px;height:31px;padding:0 9px;font-size:12.5px;line-height:29px;}
+    #toast{bottom:22px;font-size:12.5px;}
+  }
+  @media (max-width:420px){
+    .kv{grid-template-columns:70px 1fr;font-size:12.5px;}
+    .tcard{padding:12px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="tnav">
+  <div class="tnav-inner">
+    <a class="tbrand" href="../index.html" title="返回秦巴药都官网">
+      <span class="mark serif">秦</span>
+      <span class="name">秦巴药都</span>
+      <span class="sub">中药材溯源信息</span>
+    </a>
+    <nav class="tlinks">
+      <a href="../index.html">返回官网</a>
+      <a class="tcta" href="./login.html">数据平台</a>
+    </nav>
+  </div>
+</header>
+
+<section class="thead">
+  <div class="wrap">
+    <p class="eyebrow">Traceability</p>
+    <h1 class="serif">中药材溯源信息</h1>
+    <p class="lead">按溯源码查询对应批次的品种、种植地块、采收日期、加工批次与质检报告，点击「见溯源」可查看该批次的完整流转详情。</p>
+    <div class="meta">
+      <span><i class="dot"></i><span id="metaCount">数据加载中…</span></span>
+      <span id="metaSource"></span>
+    </div>
+  </div>
+</section>
+
+<main class="main">
+  <div class="wrap">
+    <div class="notice" id="notice" hidden></div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="title">溯源明细</span>
+        <span class="count" id="headCount"></span>
+        <span class="spacer"></span>
+        <span class="count" id="headPage"></span>
+      </div>
+
+      <div class="table-scroll" id="tableHost"></div>
+      <div class="cards" id="cardHost"></div>
+      <div class="empty" id="emptyHost" hidden></div>
+
+      <div class="pager" id="pager" hidden>
+        <span class="sum" id="pagerSum"></span>
+        <div class="pbtns" id="pagerBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+
+    <p class="tip" id="tip">
+      说明：本页数据直接读取自 <code>data/homeData.xlsx</code> 的「溯源明细」表，仅作查看，与 Excel 内容保持一致。
+    </p>
+  </div>
+</main>
+
+<footer class="tfoot">
+  <div class="wrap">
+    <span>© <span id="year">2026</span> 四川秦巴药都医药有限公司</span>
+    <span class="sep">·</span>
+    <span>地址：四川省广元市苍溪县紫云工业园区</span>
+    <span class="sep">·</span>
+    <span>电话：0839-5217284 / 0839-5224669</span>
+  </div>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="./js/xlsx.full.min.js"></script>
+<script src="../data/homeData.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ==================== 配置 ==================== */
+  var CFG = {
+    xlsxUrl: '../data/homeData.xlsx',
+    sheetName: '溯源明细',
+    cols: ['序号', '溯源码', '品种', '名称', '种植地块', '采收日期', '加工批次', '质检报告编号', '见详细', '备注'],
+    keyCol: '溯源码',
+    linkCol: '见详细',
+    linkText: '见溯源',        // 历史兼容字段：现规则为「见详细」列内容非空即加链接
+    traceDir: './syHtml/',
+    traceByCodeDir: true,
+    traceSep: '_',
+    traceCols: ['溯源码', '名称', '加工批次'],
+    // 列名别名：Excel 里把列改成同义写法时，页面自动识别（左＝本页标准列名，右＝可接受的别名）
+    colAlias: {
+      '加工批次': ['生产批次', '批次号', '加工批号'],
+      '名称': ['品名', '药材名称'],
+      '种植地块': ['地块', '种植基地', '地块名称'],
+      '采收日期': ['采收时间', '采收期'],
+      '质检报告编号': ['质检报告', '报告编号'],
+      '客户/去向': ['客户', '去向']
+    },
+    pageDesktop: 10,
+    pageMobile: 5
+  };
+
+  var state = {
+    rows: [],
+    page: 1,
+    pageSize: CFG.pageDesktop,
+    mobile: false,
+    source: '',
+    snapTime: ''
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var mq = window.matchMedia('(max-width: 860px)');
+
+  /* ==================== 工具 ==================== */
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('show'); }, 3600);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function clean(v) {
+    return String(v == null ? '' : v).replace(/\u00a0/g, ' ').trim();
+  }
+
+  function nowHM() {
+    var d = new Date();
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  /* ==================== 解析：定位表头、逐行取值 ==================== */
+  var TITLES = {};      // 标准列名 → Excel 实际表头文字（表头展示跟随 Excel）
+
+  // 某标准列名的全部可识别写法：主名 + 别名
+  function keysOf(name) {
+    var al = (CFG.colAlias && CFG.colAlias[name]) || [];
+    var arr = [name];
+    for (var i = 0; i < al.length; i++) { if (al[i]) arr.push(al[i]); }
+    return arr;
+  }
+
+  // 在表头行里定位某一列：精确 → 别名精确 → 末段匹配（多级表头） → 唯一包含匹配
+  function locateCol(header, name) {
+    var keys = keysOf(name);
+    var i, k, segs;
+    for (i = 0; i < keys.length; i++) {
+      k = header.indexOf(keys[i]);
+      if (k >= 0) return k;
+    }
+    for (i = 0; i < keys.length; i++) {
+      for (k = 0; k < header.length; k++) {
+        segs = String(header[k] || '').split(/[-－]/);
+        if (segs.length > 1 && segs[segs.length - 1].trim() === keys[i]) return k;
+      }
+    }
+    for (i = 0; i < keys.length; i++) {
+      var hits = [];
+      for (k = 0; k < header.length; k++) {
+        if (header[k] && String(header[k]).replace(/\s/g, '').indexOf(keys[i]) >= 0) hits.push(k);
+      }
+      if (hits.length === 1) return hits[0];
+    }
+    return -1;
+  }
+
+  function parseAoa(aoa) {
+    if (!aoa || !aoa.length) return { rows: [], header: [] };
+    var batchKeys = keysOf('加工批次');                  // 加工批次 / 生产批次 …
+    var headIdx = -1;
+    var limit = Math.min(aoa.length, 10);
+    for (var i = 0; i < limit; i++) {
+      var line = (aoa[i] || []).map(function (c) { return clean(c).replace(/\s/g, ''); });
+      var hasCode = line.indexOf('溯源码') >= 0;
+      var hasBatch = batchKeys.some(function (k) { return line.indexOf(k) >= 0; });
+      if (hasCode && hasBatch) { headIdx = i; break; }
+    }
+    if (headIdx < 0) return { rows: [], header: [] };
+
+    var header = (aoa[headIdx] || []).map(function (c) { return clean(c); });
+    var colIdx = {};
+    TITLES = {};
+    CFG.cols.forEach(function (name) {
+      var at = locateCol(header, name);
+      colIdx[name] = at;
+      TITLES[name] = (at >= 0 && header[at]) ? header[at] : name;   // 表头跟随 Excel 实际写法
+    });
+
+    var rows = [];
+    for (var r = headIdx + 1; r < aoa.length; r++) {
+      var raw = aoa[r] || [];
+      var obj = {};
+      var filled = false;
+      CFG.cols.forEach(function (name) {
+        var ci = colIdx[name];
+        var v = (ci >= 0 && ci < raw.length) ? clean(raw[ci]) : '';
+        obj[name] = v;
+        if (v) filled = true;
+      });
+      if (!filled) continue;                              // 整行空白
+      if (!obj[CFG.keyCol] && !obj['序号']) continue;      // 无关键列视为无效行
+      rows.push(obj);
+    }
+    return { rows: rows, header: header };
+  }
+
+  /* ==================== 溯源详情地址 ==================== */
+  function seg(v) {
+    return String(v == null ? '' : v).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '').trim();
+  }
+
+  function traceHref(row) {
+    if (!row) return '';
+    var parts = CFG.traceCols.map(function (c) { return seg(row[c]); });
+    for (var i = 0; i < parts.length; i++) { if (!parts[i]) return ''; }
+    var fileName = parts.join(CFG.traceSep) + '.html';
+    var dir = CFG.traceByCodeDir ? parts[0] + '/' : '';
+    return CFG.traceDir + encodeURI(dir + fileName);
+  }
+
+  /* 分页按钮（事件委托，页面重绘后依然有效） */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('#pagerBtns [data-go]') : null;
+    if (!btn || btn.disabled) return;
+    var n = parseInt(btn.getAttribute('data-go'), 10);
+    if (isNaN(n)) return;
+    var totalPages = Math.max(1, Math.ceil(state.rows.length / state.pageSize));
+    if (n < 1 || n > totalPages || n === state.page) return;
+    state.page = n;
+    render();
+    var card = document.querySelector('.card');
+    if (card && card.getBoundingClientRect().top < 0) {
+      window.scrollTo({ top: card.offsetTop - 12, behavior: 'smooth' });
+    }
+  });
+
+  /* 点击「见溯源」：http 下先探测文件是否存在，未生成则提示，而不是跳 404 */
+  var probe = {};
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[data-trace]') : null;
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href) { e.preventDefault(); return; }
+    e.preventDefault();
+    var label = a.getAttribute('data-trace') || '';
+    if (location.protocol === 'file:') { window.open(href, '_blank', 'noopener'); return; }
+    if (probe[href] === true) { window.open(href, '_blank', 'noopener'); return; }
+    if (probe[href] === false) { toast('「' + label + '」的溯源详情页尚未生成：' + decodeURI(href)); return; }
+    a.classList.add('checking');
+    fetch(href, { method: 'HEAD', cache: 'no-store' }).then(function (res) {
+      a.classList.remove('checking');
+      probe[href] = !!res.ok;
+      if (res.ok) window.open(href, '_blank', 'noopener');
+      else toast('「' + label + '」的溯源详情页尚未生成：' + decodeURI(href));
+    }).catch(function () {
+      a.classList.remove('checking');
+      window.open(href, '_blank', 'noopener');
+    });
+  });
+
+  /* ==================== 渲染 ==================== */
+  // 「见详细」列：只要单元格内容不为空，就生成溯源详情链接（链接文字沿用原值）
+  function linkHTML(row, cls) {
+    var text = clean(row[CFG.linkCol]);
+    if (!text) return '<span class="plain">—</span>';       // 空值：不生成链接
+    var href = traceHref(row);
+    if (!href) return '<span class="plain">' + esc(text) + '</span>';  // 文件名关键列缺值：仅显示文字
+    return '<a class="trace-link ' + (cls || '') + '" href="' + esc(href) + '" data-trace="' + esc(row[CFG.keyCol] || '') + '" ' +
+      'target="_blank" rel="noopener">' + esc(text) + '<span class="arrow">›</span></a>';
+  }
+
+  function renderTable(list) {
+    var head = CFG.cols.map(function (c) { return '<th>' + esc(TITLES[c] || c) + '</th>'; }).join('');
+    var body = list.map(function (row) {
+      return '<tr>' +
+        '<td class="c-idx">' + esc(row['序号']) + '</td>' +
+        '<td class="c-code">' + esc(row['溯源码']) + '</td>' +
+        '<td>' + esc(row['品种']) + '</td>' +
+        '<td>' + esc(row['名称']) + '</td>' +
+        '<td>' + esc(row['种植地块']) + '</td>' +
+        '<td>' + esc(row['采收日期']) + '</td>' +
+        '<td class="c-batch">' + esc(row['加工批次']) + '</td>' +
+        '<td class="c-report">' + esc(row['质检报告编号']) + '</td>' +
+        '<td class="c-link">' + linkHTML(row) + '</td>' +
+        '<td class="c-note">' + esc(row['备注']) + '</td>' +
+        '</tr>';
+    }).join('');
+    $('tableHost').innerHTML = '<table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function renderCards(list) {
+    var html = list.map(function (row) {
+      var tag = [row['品种'], row['名称']].filter(function (x) { return x; }).join(' · ');
+      var kv = [
+        ['溯源码', row['溯源码']],
+        ['种植地块', row['种植地块']],
+        ['采收日期', row['采收日期']],
+        ['加工批次', row['加工批次']],
+        ['质检报告', row['质检报告编号']],
+        ['备注', row['备注']]
+      ].filter(function (p) { return p[1]; }).map(function (p) {
+        return '<dt>' + esc(TITLES[p[0]] || p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>';
+      }).join('');
+      return '<article class="tcard">' +
+        '<div class="tcard-top">' +
+          '<span class="code">' + esc(row['溯源码'] || '—') + '</span>' +
+          (tag ? '<span class="tag">' + esc(tag) + '</span>' : '') +
+          '<span class="idx">第 ' + esc(row['序号']) + ' 条</span>' +
+        '</div>' +
+        '<dl class="kv">' + kv + '</dl>' +
+        '<div class="tcard-foot">' + linkHTML(row) + '</div>' +
+        '</article>';
+    }).join('');
+    $('cardHost').innerHTML = html;
+  }
+
+  function pageList(page) {
+    var size = state.pageSize;
+    return state.rows.slice((page - 1) * size, page * size);
+  }
+
+  function renderPager(totalPages) {
+    var pager = $('pager');
+    if (totalPages <= 1) { pager.hidden = true; return; }
+    pager.hidden = false;
+    $('pagerSum').textContent = '共 ' + state.rows.length + ' 条 · 每页 ' + state.pageSize + ' 条 · 第 ' + state.page + ' / ' + totalPages + ' 页';
+
+    var nums = [];
+    var cur = state.page;
+    var push = function (n) { if (nums.indexOf(n) < 0) nums.push(n); };
+    push(1);
+    for (var i = cur - 1; i <= cur + 1; i++) { if (i > 1 && i < totalPages) push(i); }
+    if (totalPages > 1) push(totalPages);
+    nums.sort(function (a, b) { return a - b; });
+
+    var html = '<button class="pbtn" data-go="' + (cur - 1) + '"' + (cur <= 1 ? ' disabled' : '') + '>上一页</button>';
+    var prev = 0;
+    nums.forEach(function (n) {
+      if (prev && n - prev > 1) html += '<span class="pbtn ellipsis">…</span>';
+      html += '<button class="pbtn' + (n === cur ? ' cur' : '') + '" data-go="' + n + '">' + n + '</button>';
+      prev = n;
+    });
+    html += '<button class="pbtn" data-go="' + (cur + 1) + '"' + (cur >= totalPages ? ' disabled' : '') + '>下一页</button>';
+    $('pagerBtns').innerHTML = html;
+  }
+
+  function render() {
+    var total = state.rows.length;
+    $('emptyHost').hidden = total > 0;
+    $('headCount').textContent = total ? '共 ' + total + ' 条记录' : '';
+    if (!total) {
+      $('tableHost').innerHTML = '';
+      $('cardHost').innerHTML = '';
+      $('emptyHost').innerHTML = '未读取到「' + CFG.sheetName + '」数据。请确认 data/homeData.xlsx 中存在该工作表，且表头同时包含「溯源码」与批次列（加工批次 / 生产批次），数据行至少有「溯源码」或「序号」。';
+      $('pager').hidden = true;
+      $('metaCount').textContent = '共 0 条';
+      return;
+    }
+
+    var totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+    if (state.page > totalPages) state.page = totalPages;
+    if (state.page < 1) state.page = 1;
+
+    var list = pageList(state.page);
+    if (state.mobile) { renderCards(list); } else { renderTable(list); }
+    renderPager(totalPages);
+
+    $('metaCount').textContent = '共 ' + total + ' 条记录';
+    $('headPage').textContent = totalPages > 1 ? ('第 ' + state.page + ' / ' + totalPages + ' 页') : '';
+  }
+
+  /* ==================== 视口切换 ==================== */
+  function applyViewport() {
+    var mobile = mq.matches;
+    var size = mobile ? CFG.pageMobile : CFG.pageDesktop;
+    if (mobile !== state.mobile || size !== state.pageSize) {
+      state.mobile = mobile;
+      state.pageSize = size;
+      state.page = 1;              // 切换形态后回到第一页，避免页码错位
+    }
+  }
+
+  function onViewportChange() {
+    applyViewport();
+    render();
+  }
+
+  if (mq.addEventListener) mq.addEventListener('change', onViewportChange);
+  else if (mq.addListener) mq.addListener(onViewportChange);
+  var rt = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(onViewportChange, 160);
+  });
+
+  /* ==================== 数据加载 ==================== */
+  function applyRows(rows, source, snapTime) {
+    state.rows = rows || [];
+    state.source = source;
+    state.snapTime = snapTime || '';
+    updateSourceMeta();
+    render();
+  }
+
+  function updateSourceMeta() {
+    var notice = $('notice');
+    var src = $('metaSource');
+    if (state.source === 'excel') {
+      notice.hidden = true;
+      src.textContent = '数据源：homeData.xlsx · ' + CFG.sheetName + ' · 读取于 ' + nowHM();
+      $('tip').innerHTML = '说明：本页数据直接读取自 <code>data/homeData.xlsx</code> 的「' + CFG.sheetName + '」表，仅作查看，与 Excel 内容保持一致。';
+    } else if (state.source === 'snap') {
+      notice.hidden = false;
+      notice.innerHTML = '<b>当前为本地文件方式打开。</b>浏览器禁止网页直接读取本地 <code>xlsx</code>，页面显示的是随附数据快照' +
+        (state.snapTime ? '（生成于 ' + esc(state.snapTime) + '）' : '') +
+        '，可能滞后于 Excel 的最新改动。要查看与 Excel 完全一致的数据，请双击 output 目录的 <code>start-login.bat</code>，再用弹出的地址访问本页。';
+      src.textContent = '数据源：内置快照' + (state.snapTime ? '（' + state.snapTime + '）' : '');
+      $('tip').innerHTML = '说明：本地文件方式下无法直接读取 <code>homeData.xlsx</code>，以上为内置快照内容；通过本地服务打开时，本页将直接读取 Excel 并保持完全一致。';
+    } else {
+      notice.hidden = true;
+      src.textContent = '';
+    }
+  }
+
+  function fromSnapshot() {
+    var snap = window.__HOME_DATA__;
+    if (!snap || !snap.sheets || !snap.sheets.length) return null;
+    var sheet = null;
+    for (var i = 0; i < snap.sheets.length; i++) {
+      if (snap.sheets[i].name === CFG.sheetName) { sheet = snap.sheets[i]; break; }
+    }
+    if (!sheet) {
+      for (var j = 0; j < snap.sheets.length; j++) {
+        if (String(snap.sheets[j].name).indexOf('溯源') >= 0) { sheet = snap.sheets[j]; break; }
+      }
+    }
+    if (!sheet || !sheet.aoa) return null;
+    var parsed = parseAoa(sheet.aoa);
+    return { rows: parsed.rows, time: snap.generatedAt || '' };
+  }
+
+  function loadFromExcel() {
+    if (typeof XLSX === 'undefined') return Promise.reject(new Error('解析组件未加载'));
+    return fetch(CFG.xlsxUrl, { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.arrayBuffer();
+    }).then(function (buf) {
+      var wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: false });
+      var name = wb.SheetNames.indexOf(CFG.sheetName) >= 0 ? CFG.sheetName : null;
+      if (!name) {
+        for (var i = 0; i < wb.SheetNames.length; i++) {
+          if (String(wb.SheetNames[i]).indexOf('溯源') >= 0) { name = wb.SheetNames[i]; break; }
+        }
+      }
+      if (!name) throw new Error('未找到「' + CFG.sheetName + '」工作表');
+      var aoa = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false, blankrows: true });
+      return parseAoa(aoa).rows;
+    });
+  }
+
+  function boot() {
+    $('year').textContent = String(new Date().getFullYear());
+    applyViewport();
+
+    // 先用手头快照立即出图（避免白屏），随后尝试读取真实 Excel 覆盖
+    var snap = fromSnapshot();
+    if (snap) applyRows(snap.rows, 'snap', snap.time);
+
+    if (location.protocol === 'file:') {
+      if (!snap) { applyRows([], 'none'); }
+      return;
+    }
+
+    loadFromExcel().then(function (rows) {
+      applyRows(rows, 'excel');
+    }).catch(function () {
+      if (!snap) applyRows([], 'none');
+    });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

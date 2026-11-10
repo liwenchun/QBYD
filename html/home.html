@@ -683,14 +683,23 @@
     pageSizes: [10, 20, 50],
     defaultPageSize: 10,
     userSheetLabel: '用户明细',   // 菜单/权限表里代表 usersData.xlsx「用户」表的名称
-    // 溯源明细表：把「见详细」列的「见溯源」变成跳转链接
+    // 溯源明细表：「见详细」列内容不为空即变成跳转链接
     traceSheetLabel: '溯源明细',
     traceDir: './syHtml/',        // 相对 home.html 的溯源页面目录
     traceByCodeDir: true,         // true = 按溯源码分子目录：./syHtml/溯源码/溯源码_名称_加工批次.html
     traceFileSep: '_',            // 文件名各段之间的连接符
     traceLinkCol: '见详细',
-    traceLinkText: '见溯源',
-    traceFileCols: ['溯源码', '名称', '加工批次']   // 文件名顺序：溯源码_名称_加工批次.html
+    traceLinkText: '见溯源',        // 历史兼容字段：现规则为「见详细」列内容非空即加链接
+    traceFileCols: ['溯源码', '名称', '加工批次'],  // 文件名顺序：溯源码_名称_加工批次.html
+    // 列名别名：Excel 中把列改成同义写法后仍能定位（如 加工批次 → 生产批次）
+    traceColAlias: {
+      '加工批次': ['生产批次', '批次号', '加工批号'],
+      '名称': ['品名', '药材名称'],
+      '溯源码': ['追溯码', '溯源码编号'],
+      '见详细': ['见详情', '查看详情']
+    },
+    permSheetLabel: '用户权限',    // usersData.xlsx 的「用户权限」表：仅超级管理用户可见/可改
+    permCols: ['一般用户', '管理用户', '超级管理用户', '可删除']  // 四个 0/1 开关
   };
 
   var ROLE_G = '一般用户';
@@ -709,6 +718,7 @@
     userHeaders: [],
     userSheetName: '用户',
     permTables: [],       // [{name, cols:{}, deletable}]
+    permSheetName: '用户权限',   // usersData.xlsx 里权限表的真实工作表名
     perm: {},             // 表名 -> {visible, mode}
     cache: {},            // 表名 -> 解析结果
     current: '',          // 当前表名
@@ -948,7 +958,7 @@
         });
       }
     }
-    return { users: users, headers: headers, sheetName: sheetName, tables: tables };
+    return { users: users, headers: headers, sheetName: sheetName, permSheetName: permName || '用户权限', tables: tables };
   }
 
   // 快照兜底（file:// 或 xlsx 读取失败时）
@@ -962,6 +972,7 @@
       users: users,
       headers: ['用户名', '用户密码', '权限', '姓名', '备注'],
       sheetName: '用户',
+      permSheetName: (snap.perm && snap.perm.sheetName) ? snap.perm.sheetName : '用户权限',
       tables: (snap.perm && snap.perm.tables) ? snap.perm.tables : []
     };
   }
@@ -983,6 +994,46 @@
       map[t.name] = { visible: visible, mode: mode };
     });
     return map;
+  }
+
+  // 把权限表当前的 0/1 开关读成 permTables 结构（表名列为空的行忽略）
+  function permTablesFromSheet(sh) {
+    var num = function (v) { return Number(v) === 1 ? 1 : 0; };
+    var out = [];
+    ((sh && sh.records) || []).forEach(function (rec) {
+      var tname = String(isBlank(rec[0]) ? '' : rec[0]).trim();
+      if (!tname) return;
+      out.push({
+        name: tname,
+        cols: { '一般用户': num(rec[1]), '管理用户': num(rec[2]), '超级管理用户': num(rec[3]) },
+        deletable: num(rec[4])
+      });
+    });
+    return out;
+  }
+
+  // 权限表改动落盘后：重算权限映射、刷新左侧菜单；当前表因此变得不可见时退回首页
+  function rebasePermAfterPermEdit() {
+    var sh = getSheet(CONFIG.permSheetLabel);
+    state.permTables = permTablesFromSheet(sh);
+    state.perm = buildPerm(state.role);
+    renderMenu();
+    if (state.current && state.current !== CONFIG.permSheetLabel && !permOf(state.current).visible) {
+      toast('当前账号已无权访问「' + state.current + '」，已退回首页', true);
+      setView('');
+    }
+  }
+
+  // 权限表的编辑保护：表名不可改；「用户权限」行自身的超级/可删除开关不可关闭（避免自锁）
+  function permEditBlocked(sh, idx, col) {
+    if (!sh || sh.name !== CONFIG.permSheetLabel) return '';
+    if (col === 0) return '表名是权限匹配依据，不能修改（如需改名请直接在 usersData.xlsx 里操作）';
+    var head = String((sh.headers[0] || [])[col] || '').trim();
+    var rowName = String(isBlank(sh.records[idx] && sh.records[idx][0]) ? '' : sh.records[idx][0]).trim();
+    if (rowName === CONFIG.permSheetLabel && (head === ROLE_S || head === '可删除')) {
+      return '「用户权限」这一行的「超级管理用户」「可删除」不允许关闭，否则超级管理员会把自己锁死';
+    }
+    return '';
   }
 
   function permOf(tableName) {
@@ -1075,6 +1126,25 @@
         merges: [],
         headers: [state.userHeaders.length ? state.userHeaders.slice() : ['用户名', '用户密码', '权限', '姓名', '备注']],
         records: state.users.map(function (r) { return r.slice(); }),
+        dirty: false
+      };
+    } else if (name === CONFIG.permSheetLabel) {
+      // 权限表：把 state.permTables 转成表格，列固定为 表名 + 四个 0/1 开关
+      var pHead = ['表名'].concat(CONFIG.permCols);
+      var pRecs = state.permTables.map(function (t) {
+        return [t.name,
+          t.cols['一般用户'] === 1 ? 1 : 0,
+          t.cols['管理用户'] === 1 ? 1 : 0,
+          t.cols['超级管理用户'] === 1 ? 1 : 0,
+          t.deletable === 1 ? 1 : 0];
+      });
+      sh = {
+        name: name,
+        headerRows: 1,
+        cols: pHead.length,
+        merges: [],
+        headers: [pHead],
+        records: pRecs,
         dirty: false
       };
     } else {
@@ -1183,6 +1253,18 @@
     return hits.length === 1 ? hits[0] : -1;
   }
 
+  // 带列名别名的定位：先按标准列名找，找不到再逐个试别名
+  function findHeaderColAlias(names, target) {
+    var at = findHeaderCol(names, target);
+    if (at >= 0) return at;
+    var al = (CONFIG.traceColAlias && CONFIG.traceColAlias[target]) || [];
+    for (var i = 0; i < al.length; i++) {
+      at = findHeaderCol(names, al[i]);
+      if (at >= 0) return at;
+    }
+    return -1;
+  }
+
   /* ==================== 菜单与首页 ==================== */
   function visibleTableNames() {
     var names = [];
@@ -1192,6 +1274,11 @@
       });
     }
     if (permOf(CONFIG.userSheetLabel).visible) names.push(CONFIG.userSheetLabel);
+    // 「用户权限」表：独立菜单入口，只对超级管理用户开放，且必须能写回 Excel（本地只读模式隐藏）
+    if (state.role === ROLE_S && canWriteFile() && state.permTables && state.permTables.length &&
+        names.indexOf(CONFIG.permSheetLabel) === -1) {
+      names.push(CONFIG.permSheetLabel);
+    }
     return names;
   }
 
@@ -1322,7 +1409,7 @@
     var p = permOf(state.current);
     var writable = canWriteFile();                    // 打开方式是否允许写回文件
     var canWrite = p.mode !== 'r' && writable;
-    var canDelete = p.mode === 'rwd' && writable;
+    var canDelete = p.mode === 'rwd' && writable && state.current !== CONFIG.permSheetLabel;
 
     $('sheetTitle').textContent = state.current;
     $('modeBadge').textContent = writable ? MODE_TEXT[p.mode] : '仅查看 · 本地文件模式';
@@ -1354,8 +1441,8 @@
     var traceMap = null;
     if (state.current === CONFIG.traceSheetLabel) {
       var fh = flatHeaders(sh);
-      var iDetail = findHeaderCol(fh, CONFIG.traceLinkCol);
-      var fileCols = CONFIG.traceFileCols.map(function (n) { return findHeaderCol(fh, n); });
+      var iDetail = findHeaderColAlias(fh, CONFIG.traceLinkCol);
+      var fileCols = CONFIG.traceFileCols.map(function (n) { return findHeaderColAlias(fh, n); });
       var ok = iDetail >= 0;
       fileCols.forEach(function (x) { if (x < 0) ok = false; });
       if (ok) traceMap = { detail: iDetail, cols: fileCols };
@@ -1375,8 +1462,8 @@
           if (txt.length > 24) cls.push('wrap');
           else if (isNumericCell(txt)) cls.push('num');
           if (canWrite && !(state.current === CONFIG.userSheetLabel && state.role !== ROLE_S && c === 1)) cls.push('editable');
-          // 「见详细」列的「见溯源」→ 溯源页面超链接
-          if (traceMap && c === traceMap.detail && txt.replace(/\s/g, '').indexOf(CONFIG.traceLinkText) !== -1) {
+          // 「见详细」列：内容不为空即生成溯源页面超链接（链接文字沿用原值）
+          if (traceMap && c === traceMap.detail && txt.replace(/\s/g, '') !== '') {
             var href = traceHref(item.row, traceMap);
             cls = cls.filter(function (x) { return x !== 'editable'; });
             var inner = href
@@ -1440,6 +1527,9 @@
   /* ==================== 编辑（内存态） ==================== */
   function setCell(sh, idx, col, value, colName) {
     if (!sh.records[idx]) return;
+    var why = permEditBlocked(sh, idx, col);
+    if (why) { toast(why, true); return; }
+    if (sh.name === CONFIG.permSheetLabel && col >= 1) value = Number(value) === 1 ? 1 : 0;
     var old = sh.records[idx][col];
     if (String(old === undefined || old === null ? '' : old) === String(value)) return;
     sh.records[idx][col] = value;
@@ -1460,6 +1550,10 @@
 
     var isPwd = state.current === CONFIG.userSheetLabel && col === 1;
     var isRoleCol = state.current === CONFIG.userSheetLabel && col === 2;
+    // 权限表：表名只读、四个开关只允许 0/1、禁止把自己锁死
+    var blocked = permEditBlocked(sh, idx, col);
+    if (blocked) { toast(blocked, true); return; }
+    var isPermSwitch = state.current === CONFIG.permSheetLabel && col >= 1;
     var cur = sh.records[idx][col];
     cur = isBlank(cur) ? '' : String(cur);
 
@@ -1498,6 +1592,15 @@
         if (r === cur) o.selected = true;
         ctrl.appendChild(o);
       });
+    } else if (isPermSwitch) {
+      ctrl = document.createElement('select');
+      ctrl.className = 'cell-select';
+      [['1', '1（开启）'], ['0', '0（关闭）']].forEach(function (pair) {
+        var o = document.createElement('option');
+        o.value = pair[0]; o.textContent = pair[1];
+        if (pair[0] === String(cur) || (cur === '' && pair[0] === '0')) o.selected = true;
+        ctrl.appendChild(o);
+      });
     } else {
       ctrl = document.createElement('input');
       ctrl.className = 'cell-input';
@@ -1530,6 +1633,10 @@
   function addRow() {
     var sh = getSheet(state.current);
     var p = permOf(state.current);
+    if (state.current === CONFIG.permSheetLabel) {
+      toast('权限表不支持新增行；如需给新表授权，请直接在 usersData.xlsx 的「用户权限」表里加一行', true);
+      return;
+    }
     if (p.mode === 'r') { toast('当前为只读权限，无法新增', true); return; }
     if (!canWriteFile()) { toast(READONLY_SOURCE_MSG, true); return; }
 
@@ -1557,6 +1664,10 @@
   function delRow(idx) {
     var sh = getSheet(state.current);
     var p = permOf(state.current);
+    if (state.current === CONFIG.permSheetLabel) {
+      toast('权限表不支持删除行；如需取消某张表的授权，把它的四个开关都设为 0 即可', true);
+      return;
+    }
     if (p.mode !== 'rwd') { toast('当前权限不可删除', true); return; }
     if (!canWriteFile()) { toast(READONLY_SOURCE_MSG, true); return; }
     if (!confirm('确认删除第 ' + (idx + 1) + ' 行数据？（删除后会自动覆盖写入原 xlsx 文件，不可撤销）')) return;
@@ -1583,6 +1694,23 @@
       if (pr) {
         state.users = pr.users.map(function (r) { return r.slice(); });
         state.userHeaders = pr.headers.slice();
+      }
+      delete state.cache[state.current];
+    }
+    if (state.current === CONFIG.permSheetLabel) {
+      // 权限表恢复到解析时的状态
+      var po = state.permOriginal;
+      if (po) {
+        state.permTables = po.map(function (t) {
+          return {
+            name: t.name,
+            cols: {
+              '一般用户': t.cols['一般用户'], '管理用户': t.cols['管理用户'],
+              '超级管理用户': t.cols['超级管理用户']
+            },
+            deletable: t.deletable
+          };
+        });
       }
       delete state.cache[state.current];
     }
@@ -1665,12 +1793,23 @@
     return aoa;
   }
 
+  // 「用户明细」「用户权限」都存放在 usersData.xlsx 里
+  function inUsersBook(name) {
+    return name === CONFIG.userSheetLabel || name === CONFIG.permSheetLabel;
+  }
+  // 菜单名 → xlsx 里真实的工作表名
+  function realSheetName(name) {
+    if (name === CONFIG.userSheetLabel) return state.userSheetName;
+    if (name === CONFIG.permSheetLabel) return state.permSheetName || CONFIG.permSheetLabel;
+    return name;
+  }
+
   function bookOf(name) {
-    return (name === CONFIG.userSheetLabel) ? state.usersWb : state.homeWb;
+    return inUsersBook(name) ? state.usersWb : state.homeWb;
   }
 
   function pathOf(name) {
-    return (name === CONFIG.userSheetLabel) ? state.xlsxPath.users : state.xlsxPath.home;
+    return inUsersBook(name) ? state.xlsxPath.users : state.xlsxPath.home;
   }
 
   function toBase64(u8) {
@@ -1792,7 +1931,7 @@
     if (!path) { saveFailed(name, '没有记录到数据文件的写入路径'); return null; }
     if (!sh.headerRows || !sh.cols) { saveFailed(name, '表格结构未识别，无法写回'); return null; }
 
-    var sheetName = (name === CONFIG.userSheetLabel) ? state.userSheetName : name;
+    var sheetName = realSheetName(name);
     var rows = [];
     sh.records.forEach(function (rec) {
       var row = [];
@@ -1867,7 +2006,7 @@
     var sh = getSheet(name);
     var wb = bookOf(name);
     var aoa = sheetAoa(name);
-    var sheetName = (name === CONFIG.userSheetLabel) ? state.userSheetName : name;
+    var sheetName = realSheetName(name);
     if (wb && aoa) {
       try {
         var ws = wb.Sheets[sheetName];
@@ -1884,7 +2023,12 @@
     state.saveErr[name] = '';
     state.retryCount[name] = 0;
     clearTimeout(state.retryTimer[name]);
-    toast('已保存，原表格格式完整保留');
+    if (name === CONFIG.permSheetLabel) {
+      rebasePermAfterPermEdit();    // 权限表刚保存：按新的 0/1 开关立即重算各表可见性
+      toast('权限已保存并立即生效；若其它已打开的页面未变化，按 F5 刷新即可');
+    } else {
+      toast('已保存，原表格格式完整保留');
+    }
     saveSnapshot(name);           // xlsx 已写回 → 同步 data 目录下的 js 快照
   }
 
@@ -1951,14 +2095,14 @@
       generatedAt: nowText(),
       note: 'usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后需重新生成。',
       users: users,
-      perm: { sheetName: state.userSheetName || '用户权限', tables: state.permTables || [] }
+      perm: { sheetName: state.permSheetName || '用户权限', tables: state.permTables || [] }
     };
     return '/* 自动生成，源数据：data/usersData.xlsx，请勿手工编辑 */\nwindow.__USERS_DATA__ = ' +
       JSON.stringify(data, null, 2) + ';\n';
   }
 
   function saveSnapshot(name) {
-    var isUser = (name === CONFIG.userSheetLabel);
+    var isUser = inUsersBook(name);
     var text = isUser ? usersSnapshotText() : homeSnapshotText();
     if (!text) return Promise.resolve(false);
     var dir = pathOf(name).replace(/[^\/]*$/, '');                 // 与 xlsx 同目录
@@ -2240,6 +2384,16 @@
 
       $('roleName').textContent = state.role;
       state.userOriginal = { users: state.users.map(function (r) { return r.slice(); }), headers: state.userHeaders.slice() };
+      state.permOriginal = state.permTables.map(function (t) {
+        return {
+          name: t.name,
+          cols: {
+            '一般用户': t.cols['一般用户'], '管理用户': t.cols['管理用户'],
+            '超级管理用户': t.cols['超级管理用户']
+          },
+          deletable: t.deletable
+        };
+      });
 
       renderMenu();
 
@@ -2314,7 +2468,9 @@
     state.userHeaders = parsed.headers;
     state.userSheetName = parsed.sheetName;
     state.permTables = parsed.tables;
+    state.permSheetName = parsed.permSheetName || '用户权限';
     delete state.cache[CONFIG.userSheetLabel];
+    delete state.cache[CONFIG.permSheetLabel];
   }
 
   boot();
