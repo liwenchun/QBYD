@@ -601,7 +601,7 @@
     <div class="notice-mode" id="modeNotice" hidden>
       <div class="row">
         <span class="ico">本地文件模式</span>
-        <span class="msg">当前以 <code>file://</code> 方式打开，浏览器禁止读取 <code>data/homeData.xlsx</code>，页面使用的是随附数据快照 <code>data/homeData.js</code>（快照不跟随 Excel 改动）。要看最新数据，请双击 output 目录的 <code>start-login.bat</code> 用本地服务打开。</span>
+        <span class="msg">当前以 <code>file://</code> 方式打开，浏览器禁止读取 <code>data/homeData.xlsx</code>，页面使用的是随附数据快照 <code>data/homeData.js</code>。该快照会在双击 <code>start-login.bat</code> 启动本地服务时，自动按同名 <code>xlsx</code> 的最新内容重建；因此看到的数据与上次启动时一致，要看刚改完的 Excel 请重新双击 <code>start-login.bat</code>。</span>
       </div>
       <div class="acts">
         <button class="btn" id="btnPickXlsx" type="button">手动选择 homeData.xlsx</button>
@@ -668,7 +668,7 @@
     homeData: '../data/homeData.xlsx',
     usersData: '../data/usersData.xlsx',
     loginPage: './login.html',
-    indexPage: './index.html',
+    indexPage: '../index.html',
     storageKey: 'qbd.auth',
     // 自动保存接口：本地服务（server.ps1）提供的写盘端点，用于把修改直接覆盖回原 xlsx
     saveEndpoint: '/__save',
@@ -862,6 +862,8 @@
   /* ==================== 数据读取 ==================== */
   function fetchArrayBuffer(url) {
     var resolved = new URL(url, document.baseURI).href;
+    // 追加时间戳：绕过浏览器与 CDN（如 GitHub Pages）缓存，确保读到刚更新的 xlsx
+    resolved += (resolved.indexOf('?') < 0 ? '?' : '&') + '_v=' + Date.now();
     return fetch(resolved, { cache: 'no-store' }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.arrayBuffer();

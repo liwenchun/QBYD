@@ -96,6 +96,17 @@
     background:#fdf8ec;border:1px solid #f0e2c6;color:#7a5a1e;
   }
   .notice b{font-weight:600;}
+  .notice.err{background:#fdf1f0;border-color:#f0cdc9;color:#8a3229;}
+  .notice code{font-size:12px;}
+  .refresh{
+    display:inline-flex;align-items:center;gap:5px;
+    height:28px;padding:0 12px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--green-700);
+    font-size:12.5px;font-weight:600;cursor:pointer;
+    transition:border-color .18s,color .18s,background .18s;
+  }
+  .refresh:hover{border-color:var(--green-500);background:#f4f9f5;}
+  .refresh[disabled]{opacity:.5;cursor:not-allowed;}
 
   /* ================= 主体 ================= */
   .main{padding:22px 0 40px;}
@@ -277,6 +288,7 @@
         <span class="title">溯源明细</span>
         <span class="count" id="headCount"></span>
         <span class="spacer"></span>
+        <button class="refresh" id="refreshBtn" type="button" hidden>刷新数据</button>
         <span class="count" id="headPage"></span>
       </div>
 
@@ -347,7 +359,9 @@
     pageSize: CFG.pageDesktop,
     mobile: false,
     source: '',
-    snapTime: ''
+    snapTime: '',
+    excelTime: '',
+    failReason: ''
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -664,22 +678,51 @@
     render();
   }
 
+  // 时间显示：'Wed, 12 Nov 2025 03:04:05 GMT' → '2025-11-12 11:04'
+  function fmtTime(v) {
+    if (!v) return '';
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  // 追加时间戳参数：绕过浏览器与 GitHub Pages(CDN) 的缓存，确保每次都是最新文件
+  function bustUrl(u) {
+    return u + (u.indexOf('?') < 0 ? '?' : '&') + '_v=' + Date.now();
+  }
+
   function updateSourceMeta() {
     var notice = $('notice');
     var src = $('metaSource');
+    notice.className = 'notice';
     if (state.source === 'excel') {
       notice.hidden = true;
-      src.textContent = '数据源：homeData.xlsx · ' + CFG.sheetName + ' · 读取于 ' + nowHM();
-      $('tip').innerHTML = '说明：本页数据直接读取自 <code>data/homeData.xlsx</code> 的「' + CFG.sheetName + '」表，仅作查看，与 Excel 内容保持一致。';
+      src.textContent = '数据源：homeData.xlsx · ' + CFG.sheetName +
+        (state.excelTime ? ' · 文件更新于 ' + state.excelTime : '') + ' · 读取于 ' + nowHM();
+      $('tip').innerHTML = '说明：本页数据直接读取自 <code>data/homeData.xlsx</code> 的「' + CFG.sheetName + '」表，仅作查看，与 Excel 内容保持一致。若刚更新过表格却仍是旧数据，请点击上方「刷新数据」。';
     } else if (state.source === 'snap') {
       notice.hidden = false;
-      notice.innerHTML = '<b>当前为本地文件方式打开。</b>浏览器禁止网页直接读取本地 <code>xlsx</code>，页面显示的是随附数据快照' +
-        (state.snapTime ? '（生成于 ' + esc(state.snapTime) + '）' : '') +
-        '，可能滞后于 Excel 的最新改动。要查看与 Excel 完全一致的数据，请双击 output 目录的 <code>start-login.bat</code>，再用弹出的地址访问本页。';
-      src.textContent = '数据源：内置快照' + (state.snapTime ? '（' + state.snapTime + '）' : '');
-      $('tip').innerHTML = '说明：本地文件方式下无法直接读取 <code>homeData.xlsx</code>，以上为内置快照内容；通过本地服务打开时，本页将直接读取 Excel 并保持完全一致。';
+      if (state.failReason) {
+        // 直接读 Excel 失败：明确告知原因，避免误以为数据已同步
+        notice.className = 'notice err';
+        notice.innerHTML = '<b>未能读取 data/homeData.xlsx，当前显示的是内置快照，可能不是最新数据。</b><br>' +
+          '失败原因：' + esc(state.failReason) +
+          (state.snapTime ? '　快照生成于 ' + esc(state.snapTime) : '') +
+          '<br>若网站已部署，请确认 <code>data/homeData.xlsx</code> 已上传并与页面同一次提交；若在电脑上直接双击打开，浏览器禁止读取本地 Excel，需通过本地服务或网站地址访问。';
+        src.textContent = '数据源：内置快照' + (state.snapTime ? '（' + state.snapTime + '）' : '') + ' · 非最新';
+        $('tip').innerHTML = '说明：以上为内置快照内容，未读取到 Excel；通过网站地址或本地服务访问时，本页将直接读取 Excel 并保持完全一致。';
+      } else {
+        notice.innerHTML = '<b>当前为本地文件方式打开。</b>浏览器禁止网页直接读取本地 <code>xlsx</code>，页面显示的是随附数据快照' +
+          (state.snapTime ? '（生成于 ' + esc(state.snapTime) + '）' : '') +
+          '，可能滞后于 Excel 的最新改动。要查看与 Excel 完全一致的数据，请双击 output 目录的 <code>start-login.bat</code>，再用弹出的地址访问本页。';
+        src.textContent = '数据源：内置快照' + (state.snapTime ? '（' + state.snapTime + '）' : '');
+        $('tip').innerHTML = '说明：本地文件方式下无法直接读取 <code>homeData.xlsx</code>，以上为内置快照内容（快照会在 <code>start-login.bat</code> 启动本地服务时自动同步 Excel）；通过本地服务打开时，本页将直接读取 Excel 并保持完全一致。';
+      }
     } else {
-      notice.hidden = true;
+      notice.hidden = false;
+      notice.className = 'notice err';
+      notice.innerHTML = '<b>未读取到「' + esc(CFG.sheetName) + '」数据。</b>' + (state.failReason ? '原因：' + esc(state.failReason) : '');
       src.textContent = '';
     }
   }
@@ -702,9 +745,13 @@
   }
 
   function loadFromExcel() {
-    if (typeof XLSX === 'undefined') return Promise.reject(new Error('解析组件未加载'));
-    return fetch(CFG.xlsxUrl, { cache: 'no-store' }).then(function (res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (typeof XLSX === 'undefined') return Promise.reject(new Error('解析组件 xlsx.full.min.js 未加载'));
+    return fetch(bustUrl(CFG.xlsxUrl), { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) {
+        var err = new Error('HTTP ' + res.status + (res.status === 404 ? '（文件不存在或路径不对，请确认 data/homeData.xlsx 已上传到同一仓库）' : ''));
+        throw err;
+      }
+      state.excelTime = fmtTime(res.headers.get('last-modified'));
       return res.arrayBuffer();
     }).then(function (buf) {
       var wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: false });
@@ -720,6 +767,25 @@
     });
   }
 
+  // 拉取 Excel：成功即覆盖页面，失败则保留/回退到快照并把失败原因显示在提示条
+  function refresh(isManual) {
+    var btn = $('refreshBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '刷新中…'; }
+    state.failReason = '';
+    return loadFromExcel().then(function (rows) {
+      applyRows(rows, 'excel');
+      if (isManual) toast('已读取最新数据：' + state.rows.length + ' 条');
+    }).catch(function (err) {
+      state.failReason = (err && err.message) ? err.message : '读取失败';
+      var snap = fromSnapshot();
+      if (snap) applyRows(snap.rows, 'snap', snap.time);
+      else applyRows([], 'none');
+      if (isManual) toast('读取 Excel 失败：' + state.failReason);
+    }).then(function () {
+      if (btn) { btn.disabled = false; btn.textContent = '刷新数据'; }
+    });
+  }
+
   function boot() {
     $('year').textContent = String(new Date().getFullYear());
     applyViewport();
@@ -728,16 +794,18 @@
     var snap = fromSnapshot();
     if (snap) applyRows(snap.rows, 'snap', snap.time);
 
+    var btn = $('refreshBtn');
     if (location.protocol === 'file:') {
       if (!snap) { applyRows([], 'none'); }
       return;
     }
 
-    loadFromExcel().then(function (rows) {
-      applyRows(rows, 'excel');
-    }).catch(function () {
-      if (!snap) applyRows([], 'none');
-    });
+    if (btn) {
+      btn.hidden = false;
+      btn.addEventListener('click', function () { refresh(true); });
+    }
+
+    refresh(false);
   }
 
   boot();
