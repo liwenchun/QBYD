@@ -1,6 +1,6 @@
 /* 自动生成，源数据：data/usersData.xlsx，请勿手工编辑 */
 window.__USERS_DATA__ = {
-  "generatedAt": "2026-11-09 15:55",
+  "generatedAt": "2026-11-10 10:18",
   "note": "usersData.xlsx 的内置快照，供双击(file://)打开时兜底；修改 xlsx 后需重新生成。",
   "users": [
     {
@@ -33,7 +33,7 @@ window.__USERS_DATA__ = {
     }
   ],
   "perm": {
-    "sheetName": "用户",
+    "sheetName": "用户权限",
     "tables": [
       {
         "name": "种植明细",
@@ -102,7 +102,7 @@ window.__USERS_DATA__ = {
         "name": "用户明细",
         "cols": {
           "一般用户": 0,
-          "管理用户": 1,
+          "管理用户": 0,
           "超级管理用户": 1
         },
         "deletable": 1
