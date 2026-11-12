@@ -670,6 +670,8 @@
     loginPage: './login.html',
     indexPage: '../index.html',
     storageKey: 'qbd.auth',
+    // 溯源码页面：左侧导航独立入口（一般用户仅可用其中的图片搜索）
+    qrPage: './QRCdMk.html',
     // 自动保存接口：本地服务（server.ps1）提供的写盘端点，用于把修改直接覆盖回原 xlsx
     saveEndpoint: '/__save',
     // 精确改写接口：只提交数据区，由本地服务调用 Excel 原地改单元格，原格式（字体/边框/合并/列宽行高）全保留
@@ -1284,6 +1286,14 @@
     return names;
   }
 
+  // 溯源码页面地址：带上当前用户名与登录时间戳，供目标页校验登录态与角色
+  function qrHref() {
+    var q = [];
+    if (AUTH.user) q.push('user=' + encodeURIComponent(AUTH.user));
+    if (AUTH.ts) q.push('ts=' + encodeURIComponent(AUTH.ts));
+    return CONFIG.qrPage + (q.length ? '?' + q.join('&') : '');
+  }
+
   function renderMenu() {
     var names = visibleTableNames();
     var html = '<div class="nav-item' + (state.current === '' ? ' active' : '') + '" data-target="" data-name="首页">' +
@@ -1300,6 +1310,11 @@
           '<span class="tag">' + (p.mode === 'r' ? '只读' : p.mode === 'rw' ? '可改' : '可删改') + '</span></div>';
       });
     }
+    // 「溯源码」独立入口：所有角色可见，跳转同目录 QRCdMk.html（一般用户仅可用图片搜索）
+    html += '<div class="nav-sep"></div>' +
+      '<div class="nav-item" data-link="' + esc(qrHref()) + '" data-name="溯源码" title="溯源码 / 二维码">' +
+      '<span class="dot"></span><span class="nav-text">溯源码</span>' +
+      '<span class="tag">查询</span></div>';
     $('menu').innerHTML = html;
   }
 
@@ -2187,6 +2202,8 @@
     $('menu').addEventListener('click', function (e) {
       var item = e.target.closest ? e.target.closest('.nav-item') : null;
       if (!item) return;
+      var link = item.getAttribute('data-link');
+      if (link) { location.href = link; return; }   // 独立页面入口（如「溯源码」）
       setView(item.getAttribute('data-target') || '');
     });
 

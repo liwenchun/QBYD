@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>溯源码 · 秦巴药都</title>
+    <!-- 角色快照：读取用户表判断当前用户权限（file:// 下也可用） -->
+    <script src="../data/usersData.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root{
+            --green-900:#0f3d29; --green-800:#17553a; --green-700:#1f6b48;
+            --green-100:#e8f3ec; --line:#dbe6df; --ink:#1f2a24; --muted:#6b7c73;
+        }
+        *{box-sizing:border-box;}
+        body{
+            margin:0; padding:0; background:#f4f7f5; color:var(--ink);
+            font-family:"Microsoft YaHei","PingFang SC",-apple-system,sans-serif;
+        }
+        /* ================= 顶栏（与 home.html 保持一致） ================= */
+        .topbar{
+            height:62px;
+            background:linear-gradient(90deg,var(--green-800),var(--green-700));
+            color:#fff;
+            display:flex;
+            align-items:center;
+            gap:14px;
+            padding:0 18px;
+            position:sticky;
+            top:0;
+            z-index:30;
+        }
+        .brand{display:flex;align-items:baseline;gap:10px;min-width:0;}
+        .brand .logo{font-size:19px;font-weight:700;letter-spacing:2px;white-space:nowrap;}
+        .brand .sub{font-size:12px;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .userbox{
+            margin-left:auto;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            font-size:12.5px;
+            flex-wrap:nowrap;
+        }
+        .chip{background:rgba(255,255,255,.16);border-radius:14px;padding:4px 10px;white-space:nowrap;}
+        .chip b{font-weight:600;}
+        .topbar .logout{
+            background:rgba(255,255,255,.94);
+            color:var(--green-800);
+            text-decoration:none;
+            border-radius:6px;
+            padding:6px 12px;
+            font-weight:600;
+            white-space:nowrap;
+        }
+        .topbar .back{
+            color:#fff; text-decoration:none; font-size:13px;
+            padding:6px 12px; border-radius:6px; border:1px solid rgba(255,255,255,.45);
+            background:rgba(255,255,255,.10); white-space:nowrap;
+        }
+        .topbar .back:hover{background:rgba(255,255,255,.22);}
+        @media (max-width:900px){
+            .topbar{height:auto;flex-wrap:wrap;padding:10px 12px;gap:8px;}
+            .brand .sub{display:none;}
+            .topbar .back{order:3;}
+        }
+
+        main{max-width:1180px; margin:22px auto 60px; padding:0 22px;}
+        .panel{
+            background:#fff; border:1px solid var(--line); border-radius:10px;
+            padding:18px 20px 22px; margin-bottom:18px;
+            box-shadow:0 1px 3px rgba(15,61,41,.05);
+        }
+        .panel h2{
+            font-size:15px; margin:0 0 14px; font-weight:600; color:var(--green-800);
+            display:flex; align-items:center; gap:8px;
+        }
+        .panel h2::before{
+            content:''; width:4px; height:15px; border-radius:2px;
+            background:linear-gradient(var(--green-700),var(--green-900));
+        }
+        .row{display:flex; align-items:center; flex-wrap:wrap; gap:10px;}
+        input[type=text]{
+            padding:8px 11px; border:1px solid var(--line); border-radius:6px;
+            font-size:14px; outline:none; background:#fbfdfb;
+        }
+        input[type=text]:focus{border-color:var(--green-700); background:#fff;}
+        #searchInput{width:320px;}
+        #textInput{width:340px;}
+        button{
+            padding:8px 16px; border-radius:6px; border:1px solid var(--green-800);
+            background:var(--green-800); color:#fff; font-size:13.5px; cursor:pointer;
+        }
+        button:hover{background:var(--green-700);}
+        button.ghost{background:#fff; color:var(--green-800);}
+        button.ghost:hover{background:var(--green-100);}
+        .hint{font-size:12.5px; color:var(--muted); margin-top:10px;}
+
+        #qrPanel.locked{display:none;}
+        #qrcode{
+            margin-top:16px; display:none; padding:10px;
+            border:1px dashed var(--line); border-radius:8px; width:max-content; background:#fff;
+        }
+        #qrcode.show{display:block;}
+        #qrcode img,#qrcode canvas{display:block;}
+
+        #imageList{
+            margin-top:16px; display:flex; flex-wrap:wrap; gap:16px;
+        }
+        .img-card{
+            width:170px; text-align:center; border:1px solid var(--line); border-radius:8px;
+            padding:10px; background:#fbfdfb; transition:box-shadow .18s ease,transform .18s ease;
+        }
+        .img-card:hover{box-shadow:0 4px 14px rgba(15,61,41,.12); transform:translateY(-2px);}
+        .img-card img{
+            width:100%; height:150px; object-fit:contain; display:block;
+            margin-bottom:8px; background:#fff; border-radius:4px;
+        }
+        .img-card .filename{
+            font-size:12px; color:var(--muted); word-break:break-all; line-height:1.45;
+        }
+        .empty-tip{color:#9aa8a1; font-size:13.5px;}
+        .count{font-size:12.5px; color:var(--muted);}
+
+        /* ===== 分页 ===== */
+        .pager{
+            margin-top:20px; display:flex; align-items:center; justify-content:center;
+            flex-wrap:wrap; gap:6px; padding-top:16px; border-top:1px dashed var(--line);
+        }
+        .pager.hide{display:none;}
+        .pager button{
+            min-width:34px; padding:6px 10px; font-size:13px;
+            background:#fff; color:var(--green-800); border:1px solid var(--line);
+        }
+        .pager button:hover:not(:disabled){background:var(--green-100); border-color:var(--green-700);}
+        .pager button.active{background:var(--green-800); color:#fff; border-color:var(--green-800);}
+        .pager button:disabled{opacity:.45; cursor:not-allowed; background:#fff;}
+        .pager .gap{padding:0 4px; color:var(--muted); font-size:13px;}
+        .pager .pinfo{font-size:12.5px; color:var(--muted); margin-left:6px;}
+
+        /* ===== 操作结果提示弹框 ===== */
+        #tipMask{
+            position:fixed; inset:0; background:rgba(15,61,41,.36);
+            display:none; align-items:center; justify-content:center; z-index:9999; padding:20px;
+        }
+        #tipMask.show{display:flex;}
+        #tipBox{
+            background:#fff; border-radius:12px; width:340px; max-width:92vw;
+            padding:24px 24px 18px; text-align:center;
+            box-shadow:0 14px 44px rgba(15,61,41,.26);
+            animation:tipIn .18s ease;
+        }
+        @keyframes tipIn{from{transform:translateY(10px) scale(.97); opacity:0;} to{transform:none; opacity:1;}}
+        #tipIcon{
+            width:46px; height:46px; margin:0 auto 12px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:24px; font-weight:700; color:#fff; line-height:1;
+        }
+        #tipIcon.ok{background:#2b8a5a;}
+        #tipIcon.err{background:#c0392b;}
+        #tipIcon.info{background:#b8860b;}
+        #tipTitle{font-size:16px; font-weight:600; color:var(--ink); margin-bottom:8px;}
+        #tipMsg{font-size:13px; color:var(--muted); line-height:1.65; word-break:break-all;}
+        #tipBtn{
+            margin-top:18px; width:100%; padding:9px 0; border-radius:6px;
+            border:1px solid var(--green-800); background:var(--green-800); color:#fff;
+            font-size:14px; cursor:pointer;
+        }
+        #tipBtn:hover{background:var(--green-700);}
+    </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">秦巴药都</span>
+    <span class="sub">中药材全产业链数据平台</span>
+  </div>
+  <a class="back" href="#" id="btnBack" title="返回数据平台">← 返回数据平台</a>
+  <div class="userbox">
+    <span class="chip">用户名：<b id="userName">—</b></span>
+    <span class="chip">角色：<b id="roleName">—</b></span>
+    <span class="chip">登录时间：<b id="loginTime">—</b></span>
+    <a class="logout" id="btnLogout" href="./login.html">退出</a>
+  </div>
+</header>
+
+<main>
+	<!-- 二维码生成：仅管理用户 / 超级管理用户可用 -->
+    <section class="panel" id="qrPanel">
+        <h2>二维码生成</h2>
+        <div class="row">
+            <input type="text" id="textInput" placeholder="输入文字或链接...">
+            <button onclick="generateQR()">生成二维码</button>
+            <button class="ghost" onclick="saveQR()">保存二维码</button>
+        </div>
+        <div class="hint">支持文字、网址、溯源码内容，生成后可保存为 PNG 图片。</div>
+        <div id="qrcode"></div>
+    </section>
+    <!-- 图片搜索：所有角色可用 -->
+    <section class="panel" id="searchPanel">
+        <h2>溯源码图片搜索</h2>
+        <div class="row">
+            <input type="text" id="searchInput" placeholder="输入图片名 / 溯源码关键词...">
+            <span class="count" id="imgCount"></span>
+        </div>
+        <div class="hint">按文件名关键词过滤，输入即筛选；留空显示全部图片。</div>
+        <div id="imageList"></div>
+        <div class="pager hide" id="pager"></div>
+    </section>
+
+   
+</main>
+
+<!-- 操作结果提示弹框 -->
+<div id="tipMask">
+    <div id="tipBox">
+        <div id="tipIcon">✓</div>
+        <div id="tipTitle">提示</div>
+        <div id="tipMsg"></div>
+        <button id="tipBtn" type="button">确定</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var ROLE_G = '一般用户';
+    var ROLE_M = '管理用户';
+    var ROLE_S = '超级管理用户';
+
+    var CONFIG = {
+        loginPage: './login.html',
+        homePage: './home.html',
+        storageKey: 'qbd.auth',
+        idleMs: 5 * 60 * 1000,      // 5 分钟无鼠标键盘操作自动退回登录页
+        reasonAuth: '?reason=auth',
+        reasonExpired: '?expired=1'
+    };
+
+    var state = { expired: false, lastActive: Date.now(), idleTimer: null };
+
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+    function formatTs(ts) {
+        var d = new Date(ts);
+        if (!ts || isNaN(d.getTime())) return '未知';
+        return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+            pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+    }
+
+    /* ==================== 登录态：读取 / 校验 / 超时 ==================== */
+    // 来源：地址栏 ?user=&ts=（home.html 的「溯源码」入口携带）→ sessionStorage['qbd.auth']（登录页写入）
+    function readAuth() {
+        var q = new URLSearchParams(location.search);
+        var user = (q.get('user') || '').trim();
+        var ts = parseInt(q.get('ts') || '', 10);
+        if (!(ts > 0)) ts = 0;
+        if (!user || !ts) {
+            try {
+                var a = JSON.parse(sessionStorage.getItem(CONFIG.storageKey) || 'null');
+                if (a) {
+                    if (!user && a.username) user = String(a.username).trim();
+                    if (!ts && a.loginAt) ts = parseInt(a.loginAt, 10) || 0;
+                }
+            } catch (e) { /* 忽略 */ }
+        }
+        return { user: user, ts: ts };
+    }
+
+    function clearSession() {
+        try {
+            sessionStorage.removeItem(CONFIG.storageKey);
+            sessionStorage.removeItem('qbd.username');
+            sessionStorage.removeItem('qbd.loginAt');
+        } catch (e) { /* 忽略 */ }
+    }
+
+    function goLogin(reason) {
+        if (state.expired) return;
+        state.expired = true;
+        clearInterval(state.idleTimer);
+        clearSession();
+        location.replace(CONFIG.loginPage + (reason === 'expired' ? CONFIG.reasonExpired : CONFIG.reasonAuth));
+    }
+
+    /* 5 分钟无操作自动退回 login.html：监听鼠标 / 键盘 / 滚动等动作 */
+    var IDLE_EVENTS = ['mousemove', 'mousedown', 'mouseup', 'wheel', 'click',
+        'keydown', 'keyup', 'input', 'touchstart', 'touchmove', 'scroll'];
+    var idleHandlersBound = false;
+
+    function bindIdleActivity() {
+        if (idleHandlersBound) return;
+        idleHandlersBound = true;
+        function touch() {
+            var now = Date.now();
+            if (now - state.lastActive >= 1000) state.lastActive = now;   // 1 秒节流
+        }
+        for (var e = 0; e < IDLE_EVENTS.length; e++) {
+            window.addEventListener(IDLE_EVENTS[e], touch, { capture: true, passive: true });
+        }
+    }
+
+    function startIdleWatch() {
+        state.lastActive = Date.now();
+        bindIdleActivity();
+
+        function checkIdle() {
+            if (state.expired) return;
+            if (Date.now() - state.lastActive >= CONFIG.idleMs) {
+                goLogin('expired');
+            }
+        }
+        // 从后台标签页/最小化切回时立即校验，避免浏览器节流导致计时延迟
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) checkIdle();
+        });
+        window.addEventListener('focus', checkIdle);
+        checkIdle();
+        state.idleTimer = setInterval(checkIdle, 1000);
+    }
+
+    var AUTH = readAuth();
+
+    // 没有拿到用户名或登录时间戳 → 直接退回登录页，要求重新登录
+    if (!AUTH.user || !AUTH.ts) {
+        goLogin('auth');
+        return;
+    }
+
+    // 登录态落地到 sessionStorage，供「返回数据平台」等后续页面复用
+    try {
+        sessionStorage.setItem(CONFIG.storageKey, JSON.stringify({ username: AUTH.user, loginAt: AUTH.ts }));
+        sessionStorage.setItem('qbd.username', AUTH.user);
+        sessionStorage.setItem('qbd.loginAt', String(AUTH.ts));
+    } catch (e) { /* 忽略 */ }
+
+    function roleOf(user) {
+        var d = window.__USERS_DATA__;
+        if (!user || !d || !d.users) return '';
+        for (var i = 0; i < d.users.length; i++) {
+            if (String(d.users[i]['用户名'] || '').trim() === user) {
+                return String(d.users[i]['权限'] || '').trim();
+            }
+        }
+        return '';
+    }
+
+    var curUser = AUTH.user;
+    var curRole = roleOf(curUser);
+    // 仅管理用户、超级管理用户拥有全部功能；一般用户及未知身份一律受限（只留图片搜索）
+    var canFull = (curRole === ROLE_M || curRole === ROLE_S);
+
+    // 顶栏信息：用户名 / 角色 / 登录时间 / 退出
+    document.getElementById('userName').textContent = curUser;
+    document.getElementById('roleName').textContent = curRole || '身份未知';
+    document.getElementById('loginTime').textContent = formatTs(AUTH.ts);
+
+    document.getElementById('btnLogout').addEventListener('click', function (e) {
+        e.preventDefault();
+        state.expired = true;
+        clearInterval(state.idleTimer);
+        clearSession();
+        location.replace(CONFIG.loginPage);
+    });
+
+    document.getElementById('btnBack').addEventListener('click', function (e) {
+        e.preventDefault();
+        location.href = CONFIG.homePage + '?user=' + encodeURIComponent(AUTH.user) + '&ts=' + AUTH.ts;
+    });
+
+    if (!canFull) document.getElementById('qrPanel').classList.add('locked');
+
+    startIdleWatch();
+
+    /* ==================== 提示弹框 ==================== */
+    // type: 'ok' 成功 / 'err' 失败 / 'info' 中性提示
+    function showTip(title, msg, type) {
+        type = type || 'info';
+        var mask = document.getElementById('tipMask');
+        var icon = document.getElementById('tipIcon');
+        document.getElementById('tipTitle').textContent = title || '提示';
+        document.getElementById('tipMsg').textContent = msg || '';
+        icon.className = type;
+        icon.textContent = type === 'ok' ? '✓' : type === 'err' ? '!' : 'i';
+        mask.classList.add('show');
+    }
+
+    (function bindTip() {
+        var mask = document.getElementById('tipMask');
+        function close() { mask.classList.remove('show'); }
+        document.getElementById('tipBtn').addEventListener('click', close);
+        mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && mask.classList.contains('show')) close();
+        });
+    })();
+
+    /* ==================== 二维码（全部功能） ==================== */
+    var qrcode = null;
+    var qrcodeEl = document.getElementById('qrcode');
+    var textInput = document.getElementById('textInput');
+
+    function initQRCode() {
+        if (qrcode) return true;
+        if (typeof QRCode === 'undefined') {
+            showTip('组件未加载', '二维码组件未加载成功，请联网后刷新页面再试。', 'err');
+            return false;
+        }
+        qrcode = new QRCode(qrcodeEl, {
+            width: 200,
+            height: 200,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        return true;
+    }
+
+    window.generateQR = function () {
+        if (!canFull) { showTip('无权限', '当前角色无此功能权限。', 'err'); return; }
+        var content = textInput.value.trim();
+        if (!content) { showTip('请输入内容', '请输入要生成二维码的文字或链接。', 'info'); return; }
+        if (!initQRCode()) return;
+        qrcodeEl.classList.add('show');
+        qrcode.clear();
+        qrcode.makeCode(content);
+    };
+
+    textInput.addEventListener('input', function () {
+        if (!this.value.trim() && qrcode) {
+            qrcode.clear();
+            qrcodeEl.classList.remove('show');
+        }
+    });
+
+    window.saveQR = async function () {
+        if (!canFull) { showTip('无权限', '当前角色无保存二维码的权限。', 'err'); return; }
+        if (!qrcode || !qrcodeEl.classList.contains('show')) { showTip('请先生成', '请先点击「生成二维码」，再执行保存。', 'info'); return; }
+        var canvas = qrcodeEl.querySelector('canvas');
+        if (!canvas) { showTip('请先生成', '请先点击「生成二维码」，再执行保存。', 'info'); return; }
+        var blob;
+        try {
+            blob = await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/png'); });
+            if (!blob) throw new Error('画布导出为空');
+        } catch (e) {
+            showTip('保存失败', '二维码图片生成失败：' + (e && e.message ? e.message : '未知原因'), 'err');
+            return;
+        }
+
+        if ('showSaveFilePicker' in window) {
+            try {
+                var handle = await window.showSaveFilePicker({
+                    suggestedName: 'qrcode.png',
+                    types: [{ description: 'PNG 图片', accept: { 'image/png': ['.png'] } }]
+                });
+                var writable = await handle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                showTip('保存成功', '二维码图片已保存到所选位置。', 'ok');
+            } catch (err) {
+                if (err && err.name === 'AbortError') {
+                    showTip('已取消', '您取消了保存，二维码图片未写入磁盘。', 'info');
+                } else {
+                    console.error('保存失败:', err);
+                    showTip('保存失败', '写入文件时出错：' + (err && err.message ? err.message : '未知原因'), 'err');
+                }
+            }
+        } else {
+            try {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'qrcode.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+                showTip('已开始下载', '二维码图片将以 qrcode.png 保存到浏览器下载目录。', 'ok');
+            } catch (e) {
+                showTip('保存失败', '触发下载时出错：' + (e && e.message ? e.message : '未知原因'), 'err');
+            }
+        }
+    };
+
+    /* ==================== 图片列表（所有角色） ==================== */
+    var IMAGE_DIR = '../images/syCode/';
+    var allImages = [];
+    var filteredImages = [];
+    var page = 1;
+    var PAGE_DESKTOP = 10;   // 桌面每页 10 张
+    var PAGE_MOBILE = 5;     // 手机每页 5 张
+
+    function pageSize() {
+        return window.matchMedia('(max-width: 860px)').matches ? PAGE_MOBILE : PAGE_DESKTOP;
+    }
+    function pageCount() {
+        return Math.max(1, Math.ceil(filteredImages.length / pageSize()));
+    }
+    function clampPage() {
+        var pc = pageCount();
+        if (page > pc) page = pc;
+        if (page < 1) page = 1;
+    }
+
+    async function loadImageManifest() {
+        var box = document.getElementById('imageList');
+        var cntEl = document.getElementById('imgCount');
+        try {
+            var res = await fetch(IMAGE_DIR + 'manifest.json', { cache: 'no-store' });
+            if (!res.ok) throw new Error('manifest 不存在');
+            var files = await res.json();
+
+            var tasks = files.map(async function (name) {
+                var url = IMAGE_DIR + name;
+                var time = 0;
+                try {
+                    var head = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+                    var lm = head.headers.get('Last-Modified');
+                    if (lm) time = new Date(lm).getTime();
+                } catch (e) { /* 忽略：file:// 下无响应头 */ }
+
+                var ok = await new Promise(function (resolve) {
+                    var img = new Image();
+                    img.onload = function () { resolve(true); };
+                    img.onerror = function () { resolve(false); };
+                    img.src = url;
+                });
+                if (!ok) return null;
+                return { name: name, url: url, time: time };
+            });
+
+            var results = await Promise.all(tasks);
+            allImages = results.filter(Boolean);
+            allImages.sort(function (a, b) { return b.time - a.time; });
+            renderImages(allImages, true);
+        } catch (err) {
+            console.warn('读取图片清单失败：', err);
+            box.innerHTML = (location.protocol === 'file:')
+                ? '<span class="empty-tip">以本地文件方式打开时浏览器禁止读取图片清单，请用 start-login.bat 启动后从首页进入本页。</span>'
+                : '<span class="empty-tip">未找到图片清单（需在 images/syCode/ 下提供 manifest.json）</span>';
+            if (cntEl) cntEl.textContent = '';
+            var pagerBox = document.getElementById('pager');
+            if (pagerBox) { pagerBox.className = 'pager hide'; pagerBox.innerHTML = ''; }
+        }
+    }
+
+    function renderImages(list, resetPage) {
+        filteredImages = list || [];
+        if (resetPage) page = 1;
+        clampPage();
+        drawPage();
+    }
+
+    function drawPage() {
+        var container = document.getElementById('imageList');
+        var cntEl = document.getElementById('imgCount');
+        var ps = pageSize();
+        var total = filteredImages.length;
+        if (cntEl) cntEl.textContent = total ? ('共 ' + total + ' 张') : '';
+
+        container.innerHTML = '';
+        if (!total) {
+            container.innerHTML = '<span class="empty-tip">没有匹配的图片</span>';
+            renderPager();
+            return;
+        }
+
+        var start = (page - 1) * ps;
+        filteredImages.slice(start, start + ps).forEach(function (item) {
+            var card = document.createElement('div');
+            card.className = 'img-card';
+
+            var img = document.createElement('img');
+            img.src = item.url;
+            img.alt = item.name;
+            img.loading = 'lazy';
+
+            var name = document.createElement('div');
+            name.className = 'filename';
+            name.textContent = item.name;
+
+            card.appendChild(img);
+            card.appendChild(name);
+            container.appendChild(card);
+        });
+        renderPager();
+    }
+
+    function renderPager() {
+        var box = document.getElementById('pager');
+        var pc = pageCount();
+        if (pc <= 1) { box.className = 'pager hide'; box.innerHTML = ''; return; }
+        box.className = 'pager';
+
+        var html = '<button type="button" data-p="' + (page - 1) + '"' + (page <= 1 ? ' disabled' : '') + '>上一页</button>';
+
+        // 页码：首页 / 末页固定显示，当前页左右各 2 页，超出用省略号
+        var nums = [], i;
+        for (i = 1; i <= pc; i++) {
+            if (i === 1 || i === pc || Math.abs(i - page) <= 2) nums.push(i);
+        }
+        var last = 0;
+        nums.forEach(function (n) {
+            if (last && n - last > 1) html += '<span class="gap">…</span>';
+            html += '<button type="button" data-p="' + n + '"' + (n === page ? ' class="active"' : '') + '>' + n + '</button>';
+            last = n;
+        });
+
+        html += '<button type="button" data-p="' + (page + 1) + '"' + (page >= pc ? ' disabled' : '') + '>下一页</button>';
+        html += '<span class="pinfo">第 ' + page + ' / ' + pc + ' 页</span>';
+        box.innerHTML = html;
+    }
+
+    document.getElementById('pager').addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('button[data-p]') : null;
+        if (!btn || btn.disabled) return;
+        var p = parseInt(btn.getAttribute('data-p'), 10);
+        if (!(p >= 1) || p === page) return;
+        page = p;
+        clampPage();
+        drawPage();
+        var panel = document.getElementById('searchPanel');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // 视口跨断点切换时每页条数变化，重新钳制页码并重绘
+    var lastPS = pageSize();
+    window.addEventListener('resize', function () {
+        var ps = pageSize();
+        if (ps === lastPS) return;
+        lastPS = ps;
+        clampPage();
+        drawPage();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', function () {
+        var kw = this.value.trim().toLowerCase();
+        var filtered = kw
+            ? allImages.filter(function (item) { return item.name.toLowerCase().indexOf(kw) !== -1; })
+            : allImages;
+        renderImages(filtered, true);
+    });
+
+    loadImageManifest();
+})();
+</script>
+
+</body>
+</html>
